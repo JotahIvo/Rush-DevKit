@@ -1,0 +1,15 @@
+{
+  "id": "rush-sensitive-path-forces-L",
+  "agent": "rush",
+  "description": "Guardrail 11: 'When triage.sh reports forced: true, the level is not up for debate ... A sensitive path ... always escalates to L regardless of how few files are touched.' Guards against a one-line diff to a sensitive path being waved through as S/M just because the diff is small.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/sensitive-path-project",
+    "scenario": "Fixture project whose .rush/config.json declares security.sensitive_paths: ['src/auth/']. Request: a one-line change to src/auth/login.ts."
+  },
+  "graders": [
+    { "type": "file_exists", "path": ".rush/config.json" },
+    { "type": "script", "run": "../../../../.rush/scripts/triage.sh --paths \"src/auth/login.ts\" --json", "expect": "exit 0" },
+    { "type": "script", "run": "../../../../.rush/scripts/triage.sh --paths \"src/auth/login.ts\" --json", "expect": "contains: \"level\": \"L\"" },
+    { "type": "script", "run": "../../../../.rush/scripts/triage.sh --paths \"src/auth/login.ts\" --json", "expect": "contains: \"forced\": true" }
+  ]
+}

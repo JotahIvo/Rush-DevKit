@@ -1,0 +1,14 @@
+{
+  "id": "features-consume-without-provider-caught",
+  "agent": "rush-features",
+  "description": "Guardrail 8: 'A consume without a matching provider ... is an error, not a warning. Do not ship a map with any of these unresolved.' Guards against /rush-features shipping a map where a feature consumes an interface no other feature provides.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/integration-map-consume-without-provider",
+    "scenario": "Fixture specs/integration-map.md where 003-checkout consumes 'POST /payments/charge' without a 'from' provider — the same map used by the rush-spec eval suite's gate case, reused here because both agents depend on this validator catching it."
+  },
+  "graders": [
+    { "type": "file_exists", "path": "specs/integration-map.md" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "exit 1" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "contains: consume_without_provider" }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "id": "python-fastapi",
+  "name": "Python + FastAPI",
+  "description": "Python backend using FastAPI with SQLAlchemy as the ORM and Alembic for migrations, pytest for tests and ruff for linting/formatting; fits a REST API service with a relational database.",
+  "match": {
+    "dependencies": ["fastapi", "sqlalchemy", "alembic"],
+    "files": ["alembic.ini", "pyproject.toml"],
+    "lockfiles": ["poetry.lock", "uv.lock", "requirements.txt", "Pipfile.lock"]
+  },
+  "commands": {
+    "test": "pytest",
+    "lint": "ruff check .",
+    "format": "ruff format .",
+    "typecheck": "mypy ."
+  },
+  "conventions": [
+    {
+      "rule": "Every path operation function must declare a `response_model` (or a return type annotation FastAPI can infer the response schema from).",
+      "reason": "FastAPI uses this to both generate the OpenAPI schema and filter the actual response data. Without it, extra fields on the returned object (including ones never meant to leave the service, like a password hash) are serialized as-is instead of being filtered out.",
+      "severity": "must"
+    },
+    {
+      "rule": "Database sessions must be obtained through a FastAPI dependency (`Depends(get_db)`), never instantiated ad hoc inside a route handler.",
+      "reason": "SQLAlchemy `Session` objects are not safe to share across concurrent requests. FastAPI's dependency system is what guarantees exactly one session per request and correct cleanup (commit/rollback/close) when the request ends, including on exceptions.",
+      "severity": "must"
+    },
+    {
+      "rule": "Business logic must not live directly in path operation functions; delegate to a service layer that the route calls.",
+      "reason": "FastAPI's recommended testing pattern relies on dependency overrides (`app.dependency_overrides`) and on services being callable/testable independent of the HTTP layer. Logic inlined in the route can only be exercised through a full HTTP request in tests.",
+      "severity": "should"
+    },
+    {
+      "rule": "Alembic migrations must be generated with `alembic revision --autogenerate` and reviewed before committing, never written from scratch by hand.",
+      "reason": "Autogenerate diffs the live database against the current SQLAlchemy metadata. A hand-written migration has no such check against reality and silently drifts from what the ORM models actually declare.",
+      "severity": "must"
+    },
+    {
+      "rule": "Request/response Pydantic schemas must be classes distinct from the SQLAlchemy ORM models, never the ORM model reused directly as the API schema.",
+      "reason": "Reusing the ORM model as the API schema either leaks internal-only columns through the API or forces awkward field exclusion logic scattered across routes; FastAPI's own tutorial recommends a separate schema layer for exactly this reason.",
+      "severity": "should"
+    }
+  ],
+  "structure": {
+    "code": "app/",
+    "tests": "tests/",
+    "migrations": "alembic/versions/"
+  },
+  "fitness_functions": [
+    {
+      "name": "no-adhoc-db-sessions-in-routes",
+      "description": "Database sessions must come from the FastAPI dependency (Depends(get_db)), never instantiated ad hoc outside the session dependency module.",
+      "scope": "all",
+      "script": "#!/usr/bin/env bash\n# description: Database sessions must come from the FastAPI dependency (Depends(get_db)), never instantiated ad hoc outside the session dependency module.\n# scope: all\nset -euo pipefail\n\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\napp_dir=\"$root/app\"\n[ -d \"$app_dir\" ] || app_dir=\"$root\"\n\nviolations=\"\"\nfor f in $(find \"$app_dir\" -type f -name \"*.py\" ! -name \"db.py\" ! -name \"database.py\" ! -name \"session.py\" ! -path \"*/tests/*\" ! -name \"test_*.py\"); do\n  if grep -qE \"sessionmaker\\(|Session\\(bind=|Session\\(engine\" \"$f\" 2>/dev/null; then\n    violations=\"$violations $f\"\n  fi\ndone\n\nif [ -n \"$violations\" ]; then\n  echo \"Ad hoc SQLAlchemy session creation outside the session dependency module:\"\n  for v in $violations; do echo \"  $v\"; done\n  exit 1\nfi\n\nexit 0\n"
+    },
+    {
+      "name": "routes-declare-response-model",
+      "description": "Every path operation function must declare a response_model or a return type annotation FastAPI can infer, so OpenAPI generation and response filtering work correctly.",
+      "scope": "all",
+      "script": "#!/usr/bin/env bash\n# description: Every path operation function must declare a response_model or a return type annotation FastAPI can infer, so OpenAPI generation and response filtering work correctly.\n# scope: all\nset -euo pipefail\n\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\n\npython3 - \"$root\" <<'PYEOF'\nimport re, sys, pathlib\n\nroot = pathlib.Path(sys.argv[1])\ndecorator_re = re.compile(r'@(?:app|router)\\.(get|post|put|patch|delete)\\(([^)]*)\\)')\ndef_re = re.compile(r'^\\s*(?:async\\s+)?def\\s+\\w+\\(.*\\)\\s*(->\\s*[\\w\\[\\], .\\'\\\"]+)?\\s*:')\n\nviolations = []\nfor path in root.rglob('*.py'):\n    parts = path.parts\n    if 'tests' in parts or path.name.startswith('test_'):\n        continue\n    try:\n        lines = path.read_text().splitlines()\n    except (UnicodeDecodeError, OSError):\n        continue\n    for i, line in enumerate(lines):\n        m = decorator_re.search(line)\n        if not m:\n            continue\n        args = m.group(2)\n        if 'response_model' in args:\n            continue\n        j = i + 1\n        found_return = False\n        while j < len(lines) and j < i + 6:\n            dm = def_re.match(lines[j])\n            if dm:\n                found_return = dm.group(1) is not None\n                break\n            j += 1\n        if not found_return:\n            violations.append(f\"{path.relative_to(root)}:{i+1}\")\n\nif violations:\n    print('Path operations without response_model or a return type annotation:')\n    for v in violations:\n        print(f'  {v}')\n    sys.exit(1)\nsys.exit(0)\nPYEOF\n"
+    }
+  ],
+  "config_overrides": {
+    "security": {
+      "sensitive_paths": ["app/auth/**", "alembic/versions/**"]
+    },
+    "autonomy": {
+      "migrations": "ask"
+    }
+  },
+  "scaffold": {
+    "commands": [
+      "python3 -m venv .venv",
+      "bash -c 'source .venv/bin/activate && pip install --upgrade pip && pip install \"fastapi[standard]\" sqlalchemy alembic pytest ruff mypy'"
+    ],
+    "post_scaffold": [
+      "bash -c 'source .venv/bin/activate && alembic init alembic'"
+    ]
+  },
+  "contract_style": "rest-openapi"
+}

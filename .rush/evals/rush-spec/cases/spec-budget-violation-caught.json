@@ -1,0 +1,14 @@
+{
+  "id": "spec-budget-violation-caught",
+  "agent": "rush-spec",
+  "description": "A spec.md that grows past the 150-line budget (SKILL.md process step 4: 'If you exceed it, the feature is too big') must be caught by validate-artifacts.sh, not shipped silently. Guards against the safety net rush-spec's own process step 8 relies on going silent.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/over-budget-spec",
+    "scenario": "Fixture project containing specs/001-fixture/spec.md, deliberately 182 lines (budget is 150). Represents a spec a rushed /rush-spec run left over budget."
+  },
+  "graders": [
+    { "type": "file_exists", "path": "specs/001-fixture/spec.md" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-artifacts.sh 001-fixture --json", "expect": "exit 1" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-artifacts.sh 001-fixture --json", "expect": "contains: \"rule\": \"budget\"" }
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "id": "features-integration-map-valid-passes",
+  "agent": "rush-features",
+  "description": "The integration map that /rush-features produces must pass validate-integration-map.sh cleanly (SKILL.md Done When: 'validate-integration-map.sh --json exits 0'). Guards against a false positive in the validator that would block a genuinely well-formed map.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/integration-map-valid",
+    "scenario": "Fixture specs/integration-map.md with two features (001-auth provides POST /auth/login; 002-cart consumes it 'from' 001-auth), one shared_contracts entry with an owner, and one journey with a test."
+  },
+  "graders": [
+    { "type": "file_exists", "path": "specs/integration-map.md" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "exit 0" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "contains: \"ok\": true" }
+  ]
+}

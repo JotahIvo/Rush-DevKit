@@ -1,0 +1,42 @@
+{
+  "version": "1.0.0",
+  "language": { "docs": "en", "code_comments": "en", "commits": "en" },
+  "git": {
+    "allow_commit": true,
+    "allow_push": false,
+    "commit_convention": "conventional",
+    "branch_pattern": "feat/NNN-slug"
+  },
+  "code": { "comments_policy": "minimal", "test_first": false },
+  "commands": { "test": null, "lint": null, "build": null, "format": null, "typecheck": null },
+  "gates": {
+    "architecture": "human",
+    "spec": "human",
+    "feature_close": "human",
+    "implement_start": "auto"
+  },
+  "autonomy": {
+    "max_attempts_per_task": 3,
+    "new_dependency": "ask",
+    "migrations": "ask",
+    "edit_tests": "ask"
+  },
+  "security": {
+    "sensitive_paths": [],
+    "blocked_commands": [],
+    "secret_scan_before_commit": true
+  },
+  "triage": { "sensitive_forces_L": true, "max_files_for_S": 3 },
+  "budgets": {
+    "pitch": 60,
+    "prd": 200,
+    "spec": 150,
+    "plan": 100,
+    "architecture": 100,
+    "claude_md": 60,
+    "constitution": 200
+  },
+  "verification": { "check_timeout_seconds": 600, "stale_spec_commits": 10 },
+  "doctor": { "stale_days": 14 },
+  "ai_features": false
+}

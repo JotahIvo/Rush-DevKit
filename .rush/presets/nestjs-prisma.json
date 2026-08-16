@@ -1,0 +1,82 @@
+{
+  "id": "nestjs-prisma",
+  "name": "NestJS + Prisma",
+  "description": "TypeScript backend using NestJS's module/controller/provider architecture with Prisma as the ORM and Jest for tests; fits a REST or GraphQL API service with a relational database.",
+  "match": {
+    "dependencies": ["@nestjs/core", "@nestjs/common", "@prisma/client"],
+    "files": ["nest-cli.json", "prisma/schema.prisma"],
+    "lockfiles": ["package-lock.json", "pnpm-lock.yaml", "yarn.lock"]
+  },
+  "commands": {
+    "test": "npm test",
+    "lint": "npm run lint",
+    "build": "npm run build",
+    "format": "npm run format",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "conventions": [
+    {
+      "rule": "Controllers must not import `@prisma/client` or perform database queries directly; all persistence goes through an injectable service or repository provider.",
+      "reason": "Nest's own testing utilities (`Test.createTestingModule`, provider mocking) are built around swapping out injected providers. Logic and queries embedded in a controller cannot be unit-tested the same way and breaks Nest's DI-based layering.",
+      "severity": "must"
+    },
+    {
+      "rule": "`PrismaClient` must be instantiated exactly once, in a shared `PrismaService` provider, never with `new PrismaClient()` elsewhere in the codebase.",
+      "reason": "Prisma's own docs warn that multiple live clients exhaust the database connection pool; this is especially easy to trigger accidentally with Nest's module system and dev-mode hot reload.",
+      "severity": "must"
+    },
+    {
+      "rule": "All controller input DTOs must be classes decorated with `class-validator` decorators, and the global `ValidationPipe` must remain enabled.",
+      "reason": "Nest's `ValidationPipe` only validates plain-object bodies against decorated DTO classes; a DTO without decorators silently passes through unvalidated, which is a correctness and security gap, not a style choice.",
+      "severity": "must"
+    },
+    {
+      "rule": "Schema changes must be made via `prisma migrate dev` (or `migrate deploy` in CI/production), never by hand-editing files under `prisma/migrations/`.",
+      "reason": "Prisma's migration history is a diff engine: it compares `schema.prisma` against the recorded migration history to generate the next migration. Hand-edited migration files desync that history and can make `migrate deploy` fail or silently diverge from the schema.",
+      "severity": "must"
+    },
+    {
+      "rule": "Uncaught domain errors should be thrown as Nest `HttpException` subclasses (or exceptions caught by a registered exception filter), not raw `Error`.",
+      "reason": "Nest's exception filter layer only produces controlled, well-shaped HTTP responses for exceptions it recognises; a raw `Error` falls through to the default handler and returns a generic 500 with none of the context Nest would otherwise attach.",
+      "severity": "should"
+    }
+  ],
+  "structure": {
+    "code": "src/",
+    "tests": "test/",
+    "migrations": "prisma/migrations/"
+  },
+  "fitness_functions": [
+    {
+      "name": "no-direct-prisma-in-controllers",
+      "description": "Controllers must not import @prisma/client directly; database access must go through a service/provider layer.",
+      "scope": "all",
+      "script": "#!/usr/bin/env bash\n# description: Controllers must not import @prisma/client directly; database access must go through a service/provider layer.\n# scope: all\nset -euo pipefail\n\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\nsrc_dir=\"$root/src\"\n\nif [ ! -d \"$src_dir\" ]; then\n  exit 0\nfi\n\nviolations=\"\"\nfor f in $(find \"$src_dir\" -type f -name \"*.controller.ts\"); do\n  if grep -q \"@prisma/client\" \"$f\" 2>/dev/null; then\n    violations=\"$violations $f\"\n  fi\ndone\n\nif [ -n \"$violations\" ]; then\n  echo \"Prisma imported directly in controller(s), move the query into a service/provider:\"\n  for v in $violations; do echo \"  $v\"; done\n  exit 1\nfi\n\nexit 0\n"
+    },
+    {
+      "name": "single-prisma-client-instance",
+      "description": "PrismaClient must only be instantiated once, in a shared PrismaService provider, never scattered across the codebase.",
+      "scope": "all",
+      "script": "#!/usr/bin/env bash\n# description: PrismaClient must only be instantiated once, in a shared PrismaService provider, never scattered across the codebase.\n# scope: all\nset -euo pipefail\n\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\nsrc_dir=\"$root/src\"\n\nif [ ! -d \"$src_dir\" ]; then\n  exit 0\nfi\n\nviolations=\"\"\nfor f in $(find \"$src_dir\" -type f -name \"*.ts\" ! -name \"prisma.service.ts\"); do\n  if grep -q \"new PrismaClient(\" \"$f\" 2>/dev/null; then\n    violations=\"$violations $f\"\n  fi\ndone\n\nif [ -n \"$violations\" ]; then\n  echo \"PrismaClient instantiated outside prisma.service.ts:\"\n  for v in $violations; do echo \"  $v\"; done\n  exit 1\nfi\n\nexit 0\n"
+    }
+  ],
+  "config_overrides": {
+    "security": {
+      "sensitive_paths": ["src/auth/**", "prisma/schema.prisma"]
+    },
+    "autonomy": {
+      "migrations": "ask"
+    }
+  },
+  "scaffold": {
+    "commands": [
+      "npx @nestjs/cli new . --skip-git --package-manager npm"
+    ],
+    "post_scaffold": [
+      "npm install prisma --save-dev",
+      "npm install @prisma/client",
+      "npx prisma init --datasource-provider postgresql"
+    ]
+  },
+  "contract_style": "rest-openapi"
+}

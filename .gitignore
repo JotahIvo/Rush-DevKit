@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+# Generated per-project by /rush-init or /rush-new — never committed with the kit itself.
+.rush/config.json
+.rush/state.json

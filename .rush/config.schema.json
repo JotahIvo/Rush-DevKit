@@ -1,0 +1,431 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rush-devkit.dev/schemas/config.schema.json",
+  "title": "Rush DevKit project config",
+  "description": "Contract read by every agent (skill) and enforced by hooks and .rush/scripts/doctor.sh. This file is the single source of truth for how agents are allowed to behave in this project — it is never a suggestion. It does NOT configure which model each agent uses: model choice lives in each skill's own frontmatter (docs/internals/kit-conventions.md, 'Modelos por agente') and is never duplicated here.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "language",
+    "git",
+    "code",
+    "commands",
+    "gates",
+    "autonomy",
+    "security",
+    "triage",
+    "budgets",
+    "verification",
+    "doctor",
+    "ai_features"
+  ],
+  "properties": {
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+      "description": "Version of the config FORMAT (schema shape), not of the project or the kit release. rush-doctor compares this against .rush/VERSION-compatible ranges to warn about stale configs after a kit upgrade. Bump only when this schema's shape changes in a way agents must know about."
+    },
+    "language": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Human language used for generated artifacts and prose. Never affects prompt authoring (SKILL.md/subagents stay in English per kit-conventions.md) and never affects code identifiers.",
+      "properties": {
+        "docs": {
+          "type": "string",
+          "description": "Language every agent must write user-facing output and generated artifacts in (pitch, PRD, spec, plan, reports in chat). Every skill reads this before writing a single line of prose. Use a BCP-47 tag such as 'en' or 'pt-BR'.",
+          "default": "en"
+        },
+        "code_comments": {
+          "type": "string",
+          "description": "Language used inside code comments written by agents. Independent from language.docs so a team can document in Portuguese while keeping code comments in English for a distributed engineering org, or vice versa.",
+          "default": "en"
+        },
+        "commits": {
+          "type": "string",
+          "description": "Language used in commit subject/body text written by agents. Independent from the other two so history stays consistent even if docs language changes mid-project.",
+          "default": "en"
+        }
+      },
+      "default": {
+        "docs": "en",
+        "code_comments": "en",
+        "commits": "en"
+      }
+    },
+    "git": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "What agents are allowed to do with git, and the shape they must follow when they do it.",
+      "properties": {
+        "allow_commit": {
+          "type": "boolean",
+          "description": "When false, no agent may run `git commit` under any circumstance — they stage changes and report, leaving the commit to a human. When true, agents may commit within the boundaries set by the rest of this section.",
+          "default": true
+        },
+        "allow_push": {
+          "type": "boolean",
+          "description": "When false (the safe default), no agent may run `git push`, even if allow_commit is true — pushing to a shared remote is a deliberately separate, higher-risk permission. Set true only in environments where autonomous push is an accepted risk (e.g. a throwaway branch with required CI review).",
+          "default": false
+        },
+        "commit_convention": {
+          "type": "string",
+          "enum": [
+            "conventional",
+            "gitmoji",
+            "none",
+            "custom"
+          ],
+          "description": "Commit message style agents must follow. 'conventional' = Conventional Commits (feat:, fix:, ...). 'gitmoji' = emoji-prefixed. 'none' = free text, no enforced shape. 'custom' = project-specific convention documented in .rush/memory/constitution.md or CLAUDE.md, which agents must read before composing a message. detect-stack.sh reports the convention actually observed in git history so this declared value can be checked against reality.",
+          "default": "conventional"
+        },
+        "branch_pattern": {
+          "type": "string",
+          "description": "Naming pattern new branches should follow, e.g. 'feat/NNN-slug' where NNN is the zero-padded feature id from specs/NNN-<slug>/ and slug is the feature's kebab-case name. Advisory: agents follow it when they create a branch. It is NOT enforced by a hook — git does not route branch creation through a tool call the hooks can reliably intercept.",
+          "default": "feat/NNN-slug"
+        }
+      },
+      "default": {
+        "allow_commit": true,
+        "allow_push": false,
+        "commit_convention": "conventional",
+        "branch_pattern": "feat/NNN-slug"
+      }
+    },
+    "code": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Baseline expectations for code agents write, independent of any single feature.",
+      "properties": {
+        "comments_policy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "minimal",
+            "didactic"
+          ],
+          "description": "How much explanatory commenting agents add to code they write. 'none' = no explanatory comments, only what the language/linter requires (e.g. docstrings for public APIs if the linter demands them). 'minimal' = comment only non-obvious decisions and trade-offs, never restate what the code already says. 'didactic' = comment generously to teach a junior reader, appropriate for learning-oriented or reference projects. Agents must not restate this in prose in generated code — it only governs density, never correctness.",
+          "default": "minimal"
+        },
+        "test_first": {
+          "type": "boolean",
+          "description": "When true, rush-implement must write and run a failing test before writing the implementation that makes it pass (red-green). When false, tests may be written alongside or after implementation, but done-contract.md checks still gate completion either way.",
+          "default": false
+        }
+      },
+      "default": {
+        "comments_policy": "minimal",
+        "test_first": false
+      }
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Project commands agents run to verify their own work. Populated by rush-init from detect-stack.sh output or a chosen preset; left null for anything not detected so agents never guess a command that does not exist. A null command is skipped by scripts that use it, and doctor.sh flags the gap.",
+      "properties": {
+        "test": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Command that runs the automated test suite. Used by done-check.sh and rush-verifier as the primary pass/fail signal. Null means no test command is configured yet — rush-init or rush-doctor should prompt to fill it in.",
+          "default": null
+        },
+        "lint": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Command that runs static lint checks. Used before commit and by fitness.sh-adjacent checks where configured. Null means lint is not configured.",
+          "default": null
+        },
+        "build": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Command that builds/compiles the project. Used to catch integration-level breakage that tests alone might miss. Null means build is not configured or not applicable (e.g. dynamically typed scripts with no build step).",
+          "default": null
+        },
+        "format": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Command that auto-formats code. Run before commit when configured, never used as a pass/fail gate by itself. Null means formatting is not enforced by the harness.",
+          "default": null
+        },
+        "typecheck": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Command that runs static type checking, separate from build/lint because some stacks (e.g. TypeScript with a bundler, or Python with mypy/pyright) run it as its own step with its own exit code. Null means no separate typecheck step is configured.",
+          "default": null
+        }
+      },
+      "default": {
+        "test": null,
+        "lint": null,
+        "build": null,
+        "format": null,
+        "typecheck": null
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "For each milestone, whether a human must explicitly approve before work proceeds ('human') or the harness may proceed on its own once its automated checks pass ('auto'). This is the primary lever for how much autonomy the whole kit has at each stage of the spec-driven-development flow.",
+      "properties": {
+        "architecture": {
+          "type": "string",
+          "enum": [
+            "human",
+            "auto"
+          ],
+          "description": "Gate on accepting rush-architect's output (structural decisions, ADRs, fitness functions). 'human' means a person must approve before any feature spec can build on it. Structural mistakes are expensive to unwind, so the safe default is 'human'.",
+          "default": "human"
+        },
+        "spec": {
+          "type": "string",
+          "enum": [
+            "human",
+            "auto"
+          ],
+          "description": "Gate on accepting a feature's spec.md/done-contract.md before implementation starts. 'human' means a person must approve the negotiated done-contract before rush-implement is allowed to run against it.",
+          "default": "human"
+        },
+        "feature_close": {
+          "type": "string",
+          "enum": [
+            "human",
+            "auto"
+          ],
+          "description": "Gate on marking a feature fully done, after done-check.sh and rush-verifier's automated checks pass. 'human' means a person still confirms the assisted review (/rush-review) before closure, even if every automated check is green.",
+          "default": "human"
+        },
+        "implement_start": {
+          "type": "string",
+          "enum": [
+            "human",
+            "auto"
+          ],
+          "description": "Gate on letting rush-implement begin coding once a spec and done-contract exist and are approved. 'auto' is the common default because the spec/done-contract gates already provide the review point; set 'human' if you want an extra explicit go-ahead before code starts.",
+          "default": "auto"
+        }
+      },
+      "default": {
+        "architecture": "human",
+        "spec": "human",
+        "feature_close": "human",
+        "implement_start": "auto"
+      }
+    },
+    "autonomy": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How much latitude agents have to make decisions and retry work without stopping to ask a human.",
+      "properties": {
+        "max_attempts_per_task": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Negative stopping criterion for iterative work (kit-conventions.md, 'Escalação e critérios de parada'). After this many failed attempts at the same task, the agent must stop, write down what it tried and why it believes it is failing, and escalate to a human instead of retrying indefinitely.",
+          "default": 3
+        },
+        "new_dependency": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "allow",
+            "deny"
+          ],
+          "description": "Policy for adding a new third-party dependency. 'ask' = agent must pause and get explicit approval. 'allow' = agent may add dependencies at its own judgement, still reported in its summary. 'deny' = agent must never add a dependency; it works within what already exists and surfaces the need as a finding instead. Also feeds triage.sh: a new dependency always forces triage level L when this is not 'allow'.",
+          "default": "ask"
+        },
+        "migrations": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "allow",
+            "deny"
+          ],
+          "description": "Policy for writing or running database/schema migrations. 'ask' = agent drafts the migration but a human must approve before it runs. 'allow' = agent may create and apply migrations autonomously. 'deny' = agent must never touch migrations; it flags the need in the spec/plan instead. Migrations are inherently risky and hard to reverse cleanly, so the safe default is 'ask'.",
+          "default": "ask"
+        },
+        "edit_tests": {
+          "type": "string",
+          "enum": [
+            "ask",
+            "allow",
+            "deny"
+          ],
+          "description": "Policy for editing or loosening an existing test or done-contract check to make it pass. Per kit-conventions.md this is treated as a serious violation, not a shortcut, when done without approval: 'ask' (the safe default) requires explicit human sign-off every time; 'deny' forbids it outright, forcing the agent to fix the implementation or escalate instead; 'allow' should only be used in low-stakes/prototype projects.",
+          "default": "ask"
+        }
+      },
+      "default": {
+        "max_attempts_per_task": 3,
+        "new_dependency": "ask",
+        "migrations": "ask",
+        "edit_tests": "ask"
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Boundaries protecting secrets and dangerous operations from being touched or run by an agent.",
+      "properties": {
+        "sensitive_paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Glob-style paths (e.g. 'src/auth/**', '**/*secret*') that always force triage level L (see triage.sh) and require extra scrutiny before an agent edits them, regardless of how small the change looks. Empty by default; a preset's config_overrides or rush-init typically seeds this with auth/payment/secrets paths detected in the codebase.",
+          "default": []
+        },
+        "blocked_commands": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Literal commands or command prefixes an agent must never run (e.g. 'rm -rf /', 'git push --force', 'DROP TABLE'). Enforced by hooks before shell execution, independent of any single agent's judgement. Empty by default; extend per project as risky commands are identified.",
+          "default": []
+        },
+        "secret_scan_before_commit": {
+          "type": "boolean",
+          "description": "When true, secret-scan.sh --staged must run and exit 0 before any commit is made by an agent; a hit blocks the commit. Disabling this removes a safety net and should only be done when an equivalent scan runs elsewhere (e.g. a pre-commit hook outside the kit, or CI-only scanning by policy).",
+          "default": true
+        }
+      },
+      "default": {
+        "sensitive_paths": [],
+        "blocked_commands": [],
+        "secret_scan_before_commit": true
+      }
+    },
+    "triage": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tuning for the S/M/L triage that triage.sh performs on incoming work before an agent starts.",
+      "properties": {
+        "sensitive_forces_L": {
+          "type": "boolean",
+          "description": "When true, touching any path listed in security.sensitive_paths always forces triage level L (full spec-driven flow), regardless of how few files are touched. Turning this off is rarely appropriate — it exists mainly so a project can temporarily relax triage while iterating on the sensitive_paths list itself.",
+          "default": true
+        },
+        "max_files_for_S": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of files a change may touch and still qualify for triage level S (quick, low-ceremony path) when no other signal (sensitive path, migration, new dependency, contract change) forces a higher level. Raising this lets more changes skip the full spec flow; lowering it pushes more work through spec-driven review.",
+          "default": 3
+        }
+      },
+      "default": {
+        "sensitive_forces_L": true,
+        "max_files_for_S": 3
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Maximum line counts for generated artifacts, enforced by validate-artifacts.sh. Density over completeness: an artifact that exceeds its budget signals the underlying feature or document is too big and should be split, not that the limit should be raised casually.",
+      "properties": {
+        "pitch": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for pitch.md. Exceeding it means the pitch is trying to also be a PRD.",
+          "default": 60
+        },
+        "prd": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for prd.md. Exceeding it usually means requirements should be split across features.",
+          "default": 200
+        },
+        "spec": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for a single feature's spec.md. Exceeding it is a signal the feature is too big and should be split (rush-spec is instructed to say so rather than silently overshoot).",
+          "default": 150
+        },
+        "plan": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for a single feature's plan.md.",
+          "default": 100
+        },
+        "architecture": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for the per-feature section of the architecture document (not the whole architecture.md, which can span many features).",
+          "default": 100
+        },
+        "claude_md": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for the project's CLAUDE.md. Kept tight so it stays something an agent actually reads in full every session rather than skims.",
+          "default": 60
+        },
+        "constitution": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for .rush/memory/constitution.md, the binding project principles document.",
+          "default": 200
+        }
+      },
+      "default": {
+        "pitch": 60,
+        "prd": 200,
+        "spec": 150,
+        "plan": 100,
+        "architecture": 100,
+        "claude_md": 60,
+        "constitution": 200
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tuning for how the harness verifies work is actually done.",
+      "properties": {
+        "check_timeout_seconds": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Per-check timeout used by done-check.sh when running each command from a done-contract.md's checks block. A check that exceeds this is reported as a timeout failure, not left hanging.",
+          "default": 600
+        },
+        "stale_spec_commits": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of code commits on a feature without a corresponding spec.md update after which check-as-built.sh reports the spec as stale drift. Lowering this catches drift sooner at the cost of more frequent (possibly noisy) warnings.",
+          "default": 10
+        }
+      },
+      "default": {
+        "check_timeout_seconds": 600,
+        "stale_spec_commits": 10
+      }
+    },
+    "doctor": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tuning for rush-doctor's project-health diagnostics.",
+      "properties": {
+        "stale_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of days an open item in questions.md or a debt entry can go untouched before doctor.sh flags it as stalled and in need of human attention.",
+          "default": 14
+        }
+      },
+      "default": {
+        "stale_days": 14
+      }
+    },
+    "ai_features": {
+      "type": "boolean",
+      "description": "Declares whether the PROJECT ITSELF (the product being built, not the Rush DevKit harness) ships AI/LLM-powered features. When true, rush-architect and rush-spec apply extra scrutiny appropriate to AI features (prompt injection surface, model fallback behaviour, cost/latency budgets) and detect-stack.sh's ai_sdks field becomes a meaningful signal rather than noise. This never enables or configures the AI used to run the kit's own agents — that is fixed by each skill's frontmatter, not by this file.",
+      "default": false
+    }
+  }
+}

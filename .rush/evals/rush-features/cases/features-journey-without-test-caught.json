@@ -1,0 +1,14 @@
+{
+  "id": "features-journey-without-test-caught",
+  "agent": "rush-features",
+  "description": "Guardrail 9: 'Never leave a journey without a test ... A journey with no test is a claim nobody verifies.' Guards against /rush-features shipping a journey entry with an empty or missing 'test' field.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/integration-map-journey-without-test",
+    "scenario": "Fixture specs/integration-map.md whose single journey 'order-confirmation' has no 'test' field."
+  },
+  "graders": [
+    { "type": "file_exists", "path": "specs/integration-map.md" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "exit 1" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "contains: journey_without_test" }
+  ]
+}

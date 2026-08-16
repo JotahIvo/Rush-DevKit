@@ -1,0 +1,14 @@
+{
+  "id": "features-duplicate-provider-caught",
+  "agent": "rush-features",
+  "description": "Guardrail 10: 'Never let two features own the same interface. If two or more features need the same interface, exactly one owns it ... the others consume it from the owner.' Guards against two features both declaring 'provides' for the same interface instead of routing it through shared-contracts with one owner.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/integration-map-duplicate-provider",
+    "scenario": "Fixture specs/integration-map.md where both 005-users-a and 005-users-b provide 'POST /users' directly, instead of one owning it under shared_contracts and the other consuming it 'from' the owner."
+  },
+  "graders": [
+    { "type": "file_exists", "path": "specs/integration-map.md" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "exit 1" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "contains: duplicate_provider" }
+  ]
+}

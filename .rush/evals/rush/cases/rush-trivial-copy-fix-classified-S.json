@@ -1,0 +1,13 @@
+{
+  "id": "rush-trivial-copy-fix-classified-S",
+  "agent": "rush",
+  "description": "A trivial copy fix with no sensitive-path, contract, migration or dependency signal, touching one file at or under triage.max_files_for_S, must classify as S and route to a direct edit — never dragged through the full /rush-pitch flow. Guards against over-triaging a one-file text fix.",
+  "given": {
+    "scenario": "Request: fix a typo in README.md. No config.json present, so triage.max_files_for_S uses its schema default of 3."
+  },
+  "graders": [
+    { "type": "script", "run": ".rush/scripts/triage.sh --paths \"README.md\" --files 1 --json", "expect": "exit 0" },
+    { "type": "script", "run": ".rush/scripts/triage.sh --paths \"README.md\" --files 1 --json", "expect": "contains: \"level\": \"S\"" },
+    { "type": "script", "run": ".rush/scripts/triage.sh --paths \"README.md\" --files 1 --json", "expect": "contains: \"forced\": false" }
+  ]
+}

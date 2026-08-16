@@ -1,0 +1,14 @@
+{
+  "id": "spec-blocked-by-broken-integration-map",
+  "agent": "rush-spec",
+  "description": "rush-spec's Inputs section requires running validate-integration-map.sh before writing and stopping if it exits 1 ('the map must be fixed first, because a spec written against a broken map inherits the break'). Also guards Guardrail 9: a consumed interface with no provider must be reported, never invented. This case proves the gate itself fires on a map with a consume_without_provider gap.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/integration-map-consume-without-provider",
+    "scenario": "Fixture specs/integration-map.md where feature 003-checkout consumes 'POST /payments/charge' with no 'from' provider declared — exactly the situation rush-spec must report rather than invent a provider for."
+  },
+  "graders": [
+    { "type": "file_exists", "path": "specs/integration-map.md" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "exit 1" },
+    { "type": "script", "run": "../../../../.rush/scripts/validate-integration-map.sh --json", "expect": "contains: consume_without_provider" }
+  ]
+}

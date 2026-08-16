@@ -1,0 +1,71 @@
+{
+  "id": "nextjs",
+  "name": "Next.js (App Router)",
+  "description": "TypeScript Next.js project using the App Router, with Vitest for unit/component tests and Playwright for end-to-end tests where the project needs browser-level coverage.",
+  "match": {
+    "dependencies": ["next"],
+    "files": ["next.config.js", "next.config.ts", "next.config.mjs"],
+    "lockfiles": ["package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lockb"]
+  },
+  "commands": {
+    "test": "npx vitest run",
+    "lint": "npx next lint",
+    "build": "npx next build",
+    "format": "npx prettier --write .",
+    "typecheck": "npx tsc --noEmit"
+  },
+  "conventions": [
+    {
+      "rule": "Any component that uses `useState`, `useEffect`, `useContext`, or another client-only hook must declare `'use client'` as its first line.",
+      "reason": "The App Router treats every component as a Server Component by default. Using a client-only hook without the directive is not a style violation, it is a build or runtime error under Next.js's compiler.",
+      "severity": "must"
+    },
+    {
+      "rule": "Server-only secrets and environment variables must never be referenced from a file marked `'use client'`; only variables prefixed `NEXT_PUBLIC_` may appear there.",
+      "reason": "Next.js only inlines `NEXT_PUBLIC_`-prefixed env vars into the client bundle. Referencing an unprefixed server var from client code either fails, or someone 'fixes' it by adding the prefix, which ships the secret to the browser.",
+      "severity": "must"
+    },
+    {
+      "rule": "Do not fetch initial page data with a client-side `useEffect` when the data is available at request time; fetch it directly in the Server Component instead.",
+      "reason": "Client-side fetching after mount reintroduces the client-server request waterfall that Server Components and streaming exist specifically to eliminate — it is not a preference, it undoes the App Router's core performance model for that route.",
+      "severity": "should"
+    },
+    {
+      "rule": "Mutations triggered from a form should use a Server Action rather than a hand-rolled `fetch` to a Route Handler, unless the caller is not a Next.js page (e.g. a third-party webhook or external client).",
+      "reason": "Server Actions get Next.js's built-in revalidation, redirect and progressive-enhancement handling for free; re-implementing the same flow through a Route Handler duplicates that plumbing and tends to drift from it over time.",
+      "severity": "should"
+    }
+  ],
+  "structure": {
+    "code": "app/",
+    "tests": "tests/"
+  },
+  "fitness_functions": [
+    {
+      "name": "server-components-no-client-hooks",
+      "description": "Files without a 'use client' directive must not call client-only hooks (useState/useEffect/useContext), since the App Router treats them as Server Components by default.",
+      "scope": "all",
+      "script": "#!/usr/bin/env bash\n# description: Files without a 'use client' directive must not call client-only hooks (useState/useEffect/useContext), since the App Router treats them as Server Components by default.\n# scope: all\nset -euo pipefail\n\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\napp_dir=\"$root/app\"\n[ -d \"$app_dir\" ] || app_dir=\"$root/src/app\"\n\nif [ ! -d \"$app_dir\" ]; then\n  exit 0\nfi\n\nviolations=\"\"\nfor f in $(find \"$app_dir\" -type f \\( -name \"*.tsx\" -o -name \"*.ts\" \\)); do\n  if head -n 5 \"$f\" | grep -q \"use client\"; then\n    continue\n  fi\n  if grep -qE \"useState\\(|useEffect\\(|useContext\\(\" \"$f\" 2>/dev/null; then\n    violations=\"$violations $f\"\n  fi\ndone\n\nif [ -n \"$violations\" ]; then\n  echo \"Server Components using client-only hooks without 'use client':\"\n  for v in $violations; do echo \"  $v\"; done\n  exit 1\nfi\n\nexit 0\n"
+    },
+    {
+      "name": "no-secret-env-in-client-files",
+      "description": "Files marked 'use client' must not reference server-only environment variables (any process.env var without the NEXT_PUBLIC_ prefix).",
+      "scope": "all",
+      "script": "#!/usr/bin/env bash\n# description: Files marked 'use client' must not reference server-only environment variables (any process.env var without the NEXT_PUBLIC_ prefix).\n# scope: all\nset -euo pipefail\n\nroot=\"$(git rev-parse --show-toplevel 2>/dev/null || pwd)\"\napp_dir=\"$root/app\"\n[ -d \"$app_dir\" ] || app_dir=\"$root/src/app\"\n\nif [ ! -d \"$app_dir\" ]; then\n  exit 0\nfi\n\nviolations=\"\"\nfor f in $(find \"$app_dir\" -type f \\( -name \"*.tsx\" -o -name \"*.ts\" \\)); do\n  if ! head -n 5 \"$f\" | grep -q \"use client\"; then\n    continue\n  fi\n  matches=$(grep -oE \"process\\.env\\.[A-Za-z0-9_]+\" \"$f\" 2>/dev/null || true)\n  if [ -z \"$matches\" ]; then\n    continue\n  fi\n  non_public=$(echo \"$matches\" | grep -v \"NEXT_PUBLIC_\" || true)\n  if [ -n \"$non_public\" ]; then\n    violations=\"$violations $f\"\n  fi\ndone\n\nif [ -n \"$violations\" ]; then\n  echo \"Client Components referencing non-NEXT_PUBLIC_ environment variables:\"\n  for v in $violations; do echo \"  $v\"; done\n  exit 1\nfi\n\nexit 0\n"
+    }
+  ],
+  "config_overrides": {
+    "security": {
+      "sensitive_paths": ["app/api/auth/**", "middleware.ts"]
+    }
+  },
+  "scaffold": {
+    "commands": [
+      "npx create-next-app@latest . --typescript --eslint --app --src-dir --import-alias \"@/*\" --use-npm"
+    ],
+    "post_scaffold": [
+      "npm install --save-dev vitest @vitejs/plugin-react jsdom @testing-library/react @testing-library/jest-dom"
+    ]
+  },
+  "contract_style": "rest-openapi"
+}

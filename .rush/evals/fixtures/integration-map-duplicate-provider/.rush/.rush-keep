@@ -1,0 +1,3 @@
+Marker file. This directory must exist even when empty: it is a project-root
+marker for an eval fixture, and neither git nor a plain file copy preserves
+empty directories.

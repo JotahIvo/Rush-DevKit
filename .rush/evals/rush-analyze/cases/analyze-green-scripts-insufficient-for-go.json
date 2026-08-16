@@ -1,0 +1,11 @@
+{
+  "id": "analyze-green-scripts-insufficient-for-go",
+  "agent": "rush-analyze",
+  "description": "Guardrail 12: 'A passing deterministic layer is necessary, never sufficient ... Do not issue GO on script output alone; the judgement pass in Process step 3 is mandatory every time, even when every script is green.' Guards against rush-analyze short-circuiting straight to GO once validate-artifacts.sh / validate-integration-map.sh / validate-contracts.sh all exit 0.",
+  "given": {
+    "scenario": "Run /rush-analyze on a feature whose spec.md, plan.md, tasks.md, done-contract.md and contracts are all well-formed enough that validate-artifacts.sh, validate-integration-map.sh and validate-contracts.sh all report ok:true/exit 0 — but plan.md's approach section silently implements a caching layer that spec.md's Behaviour section never mentions (an orphan requirement in the plan with no corresponding spec text), which only the judgement pass (Process step 3, 'Spec <-> plan contradiction') can catch."
+  },
+  "graders": [
+    { "type": "manual", "rubric": "PASS only if the report explicitly records findings from Process step 3's judgement dimensions (at minimum: spec<->plan contradiction) as part of reaching its verdict — for example, a NO-GO or a WARNING that names the plan.md caching addition with no spec.md counterpart — and the deterministic-layer summary is shown as evidence alongside it, not as the sole basis for the verdict. FAIL if the verdict is GO with a report that only restates the three scripts' green results and does not show that the judgement-layer dimensions (spec<->plan contradiction, orphan requirements/tasks, uncovered acceptance criteria, architecture reflection, constitution conflict, cross-feature breakage) were actually walked, even in a case where the deterministic layer alone happens to look clean." }
+  ]
+}

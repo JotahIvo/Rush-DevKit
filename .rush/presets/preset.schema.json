@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://rush-devkit.dev/schemas/preset.schema.json",
+  "title": "Rush DevKit stack preset",
+  "description": "A preset packages what the kit needs to know about one stack: how detect-stack.sh recognises it, the commands used to verify work, the prose conventions worth seeding into CLAUDE.md/constitution.md, starter fitness functions, config overrides, and (for greenfield projects) the official scaffold command. rush-init consumes a preset for an existing project (matching it against the detected stack); rush-new consumes it to bootstrap a new project from scratch via `scaffold`.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "name", "description", "match", "commands", "conventions", "structure", "contract_style"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Stable kebab-case identifier, matched against detect-stack.sh's preset_suggestion field and used as the preset's filename (<id>.json). Never rename once published — projects may reference it."
+    },
+    "name": {
+      "type": "string",
+      "description": "Short human-readable name shown to the user when rush-init proposes this preset, e.g. 'NestJS + Prisma'."
+    },
+    "description": {
+      "type": "string",
+      "description": "One dense sentence: what stack this covers and what kind of project it fits. Shown alongside `name` when a user is choosing between presets."
+    },
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Deterministic signals detect-stack.sh uses to recognise this stack in an existing repository. Every listed signal is a plain string match against files already on disk — never a guess, never something requiring network access.",
+      "properties": {
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Package names that, if present in the project's manifest (package.json dependencies/devDependencies, requirements.txt, pyproject.toml, etc.), count as a signal for this preset. Order does not matter; matching is existence-based, not version-based."
+        },
+        "files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Relative file paths or globs whose presence signals this stack (e.g. 'nest-cli.json', 'next.config.js', 'alembic.ini')."
+        },
+        "lockfiles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Lockfile names that, combined with the other signals, confirm the package manager / ecosystem in use (e.g. 'package-lock.json', 'pnpm-lock.yaml', 'poetry.lock')."
+        }
+      },
+      "default": { "dependencies": [], "files": [], "lockfiles": [] }
+    },
+    "commands": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Real, ecosystem-correct CLI invocations this preset seeds into config.json → commands when adopted. Any field left out means that command is not applicable or not standardised enough for this stack to assume; rush-init leaves it null rather than guessing.",
+      "properties": {
+        "test": { "type": "string", "description": "Command that runs the test suite for this stack." },
+        "lint": { "type": "string", "description": "Command that runs static lint checks for this stack." },
+        "build": { "type": "string", "description": "Command that builds/compiles the project for this stack." },
+        "format": { "type": "string", "description": "Command that auto-formats code for this stack." },
+        "typecheck": { "type": "string", "description": "Command that runs static type checking for this stack, where the ecosystem has one as a distinct step." }
+      }
+    },
+    "conventions": {
+      "type": "array",
+      "description": "Prose rules that seed CLAUDE.md and constitution.md for a project adopting this preset. Every entry must be an EARNED rule: traceable to a real constraint of the stack (a footgun the framework has, a failure mode the ecosystem is known for, a structural property that must hold for the framework's own guarantees to hold) — never a bare style preference. `reason` is mandatory precisely so a human reviewing the preset can reject rules that turn out to be taste dressed up as principle.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["rule", "reason"],
+        "properties": {
+          "rule": { "type": "string", "description": "The rule itself, stated as a single imperative sentence suitable for pasting into CLAUDE.md or constitution.md." },
+          "reason": { "type": "string", "description": "Why this rule is earned: the concrete constraint, failure mode, or framework guarantee it protects. This is what a reviewer checks before accepting the rule into a real project." },
+          "severity": {
+            "type": "string",
+            "enum": ["must", "should"],
+            "description": "'must' = binding constitution-level rule, violating it blocks a gate. 'should' = strong default, worth a comment in review but not an automatic block.",
+            "default": "should"
+          }
+        }
+      },
+      "default": []
+    },
+    "structure": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Where this stack conventionally places code, tests and migrations, relative to the project root. Used to seed architecture.md and to give rush-explorer a starting point instead of a blind search.",
+      "properties": {
+        "code": { "type": "string", "description": "Relative path where application source code lives, e.g. 'src/'." },
+        "tests": { "type": "string", "description": "Relative path where tests live, e.g. 'test/' or 'tests/'." },
+        "migrations": { "type": "string", "description": "Relative path where database schema migrations live, if this stack has migrations. Omit for stacks without a migration concept." }
+      }
+    },
+    "fitness_functions": {
+      "type": "array",
+      "description": "Starter executable checks seeded into .rush/memory/fitness/ for a project adopting this preset, run by fitness.sh. Each one encodes a real architectural constraint of the stack, not an arbitrary style preference — the same 'earned rule' bar as `conventions`.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "description", "scope", "script"],
+        "properties": {
+          "name": { "type": "string", "description": "Short kebab-case identifier for the check, used as the seeded script's filename stem (<name>.sh)." },
+          "description": { "type": "string", "description": "One sentence: what architectural constraint this enforces and why it matters for this stack. Becomes the '# description:' header fitness.sh reads." },
+          "scope": { "type": "string", "description": "'all' to run against the whole project every time, or a feature id pattern to scope it to specific features. Becomes the '# scope:' header fitness.sh reads.", "default": "all" },
+          "script": { "type": "string", "description": "The full body of the fitness function script (POSIX-portable bash, no GNU-only flags, no jq — see docs/internals/script-interfaces.md), written out verbatim so rush-init can create it as-is. Must exit 0 when the constraint holds and a non-zero exit with an explanatory message when it does not." }
+        }
+      },
+      "default": []
+    },
+    "config_overrides": {
+      "type": "object",
+      "description": "Partial config.json merged over config.default.json when this preset is adopted (e.g. stack-appropriate autonomy defaults, sensitive_paths seeded from files.match). Must be a subset of config.schema.json's shape; rush-init validates the merged result before writing config.json.",
+      "default": {}
+    },
+    "scaffold": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "For greenfield use via rush-new: the official generator command(s) for this stack, plus anything that must run right after scaffolding to leave the project in a state the rest of the kit can work with. Omit entirely for a preset meant only to match existing projects.",
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of shell commands that create a new project of this stack, using each ecosystem's own official generator (e.g. `npx @nestjs/cli new .`, `npx create-next-app@latest .`). rush-new runs these in order and stops on the first non-zero exit."
+        },
+        "post_scaffold": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Ordered list of shell commands run after `commands` succeed, to adapt the generator's default output to the kit's expectations (e.g. installing a test runner the generator does not include by default, wiring an ORM). Kept minimal and non-destructive — this is finishing the official scaffold, not replacing it."
+        }
+      }
+    },
+    "contract_style": {
+      "type": "string",
+      "enum": ["rest-openapi", "graphql", "events"],
+      "description": "The interface contract style validate-contracts.sh should expect for features built on this stack: 'rest-openapi' for HTTP APIs described with OpenAPI, 'graphql' for a GraphQL schema, 'events' for AsyncAPI/event-driven contracts. Determines which contract files rush-contracts generates by default."
+    }
+  }
+}
