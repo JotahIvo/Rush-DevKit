@@ -29,8 +29,10 @@ um LLM. Se um comportamento precisa ser idêntico toda vez, ele vive aqui — n�
 | `rush_root` | Ecoa a raiz do projeto; erro se não encontrar |
 | `rush_config <caminho.pontilhado> [default]` | Lê valor de `.rush/config.json` |
 | `rush_config_bool <caminho> [default]` | Ecoa `true`/`false` |
-| `rush_feature_dir <id>` | Ecoa `specs/<id>/` resolvendo prefixo parcial (`007` → `007-checkout`) |
-| `rush_current_feature` | Feature ativa (`.rush/state.json` → `current_feature`) |
+| `rush_spec_dir <id>` | Ecoa `specs/<id>/` (nível pai) resolvendo prefixo parcial (`001` → `001-autenticacao`) |
+| `rush_feature_dir <id> [spec-id]` | Ecoa `specs/<spec-id>/<id>/` (nível filha, aninhado). Busca em todos os specs a menos que `[spec-id]` limite a busca; erro nomeado se `<id>` colidir entre specs |
+| `rush_current_spec` | Spec ativo (`.rush/state.json` → `current_spec`) |
+| `rush_current_feature` | Feature ativa dentro do spec ativo (`.rush/state.json` → `current_feature`) |
 | `rush_die <msg>` / `rush_warn` / `rush_ok` / `rush_info` | Mensagens padronizadas (stderr) |
 | `rush_json_out <json>` | Imprime JSON em stdout e sai 0 |
 
@@ -77,16 +79,53 @@ Regras: path sensível, migration, dependência nova ou mudança de contrato ⇒
 Sem sinais e `file_count <= triage.max_files_for_S` ⇒ `S`. Caso contrário `M` com
 `needs_human_confirmation: true`.
 
-### `new-feature.sh <slug> [--title "..."] [--json]`
+### `new-spec.sh <slug> [--title "..."] [--json]`
 
-Cria `specs/NNN-<slug>/` (NNN sequencial de 3 dígitos), copia templates, registra a feature em
-`.rush/state.json`. Idempotente: slug existente retorna o diretório sem sobrescrever.
+Cria `specs/NNN-<slug>/` (NNN sequencial de 3 dígitos, **nível pai**), copia `pitch.md`/`prd.md`
+dos templates, registra o spec em `.rush/state.json` (`current_spec`, `specs[]`). Idempotente:
+slug existente retorna o diretório sem sobrescrever. Zera `current_feature` ao trocar de spec —
+uma feature de outro spec não deve continuar "ativa" depois da troca.
 
 ```json
-{ "feature_id": "007-checkout", "dir": "specs/007-checkout",
+{ "spec_id": "001-autenticacao-google", "dir": "specs/001-autenticacao-google",
+  "created": ["pitch.md", "prd.md"], "already_existed": false }
+```
+
+### `new-feature.sh <spec-id> <slug> [--title "..."] [--json]`
+
+Cria `specs/<spec-id>/MMM-<slug>/` (MMM sequencial de 3 dígitos, **aninhado dentro do spec**;
+cada spec numera suas próprias features a partir de 001 — dois specs diferentes podem ter cada
+um seu próprio `001-...`, o que é esperado, não colisão). Copia templates de feature, registra em
+`.rush/state.json` (`current_spec`, `current_feature`, `features[]` — cada registro carrega
+`spec_id` e é deduplicado por `dir`, não por `id`, porque `id` só é único dentro do spec).
+`<spec-id>` precisa já existir (via `new-spec.sh`); idempotente: slug existente dentro daquele
+spec retorna o diretório sem sobrescrever.
+
+```json
+{ "spec_id": "001-autenticacao-google", "feature_id": "002-entrada-com-google",
+  "dir": "specs/001-autenticacao-google/002-entrada-com-google",
   "created": ["spec.md","plan.md","tasks.md","done-contract.md","progress.md"],
   "already_existed": false }
 ```
+
+### Esquema de `.rush/state.json`
+
+```json
+{
+  "current_spec": "001-autenticacao-google",
+  "current_feature": "002-entrada-com-google",
+  "specs": [
+    { "id": "001-autenticacao-google", "dir": "specs/001-autenticacao-google", "title": "..." }
+  ],
+  "features": [
+    { "id": "002-entrada-com-google", "spec_id": "001-autenticacao-google",
+      "dir": "specs/001-autenticacao-google/002-entrada-com-google", "title": "..." }
+  ]
+}
+```
+
+Não editar à mão fora de um script — todo escritor passa por `rushlib.py json-set` /
+`json-list-append`, que fazem escrita atômica.
 
 ### `validate-artifacts.sh [<feature-id>|--all] [--json]`
 

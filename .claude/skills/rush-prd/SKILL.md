@@ -53,8 +53,10 @@ Read before acting, in this order:
 
 ## Process
 
-1. **Resolve the feature.** Locate `specs/<id>/`; if it doesn't exist, stop — a PRD needs a pitch
-   and architecture to consolidate, and neither has a home yet. Point the user to `/rush-pitch`.
+1. **Resolve the spec.** A PRD lives at the spec level, alongside `pitch.md` (`specs/<spec-id>/prd.md`)
+   — not inside any one feature, since features don't exist yet at this point in the flow. Locate
+   `specs/<spec-id>/`; if it doesn't exist, stop — a PRD needs a pitch and architecture to
+   consolidate, and neither has a home yet. Point the user to `/rush-pitch`.
 
 2. **Reconcile pitch and architecture.** Read both and note where architecture's feasibility
    findings narrow or reshape what the pitch proposed (e.g. an integration the pitch assumed is

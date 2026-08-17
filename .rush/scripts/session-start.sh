@@ -9,8 +9,8 @@
 # Exit 0 always on a successful run, 2 on usage or internal error.
 #
 # JSON field names are load-bearing: .rush/hooks/session-start.sh (the
-# Claude Code SessionStart hook) reads current_feature, tasks,
-# open_questions, open_debt, dirty_tree, last_commits,
+# Claude Code SessionStart hook) reads current_spec, current_feature,
+# tasks, open_questions, open_debt, dirty_tree, last_commits,
 # last_progress_entry and baseline_test_command from this script's
 # --json output verbatim.
 set -euo pipefail
@@ -46,11 +46,14 @@ done
 root="$(rush_root)" || exit 2
 py="$(rush_python)" || exit 2
 
+current_spec="$(rush_current_spec)" || exit 2
 current_feature="$(rush_current_feature)" || exit 2
 
 feature_dir=""
 if [ -n "$current_feature" ]; then
-  feature_dir="$(rush_feature_dir "$current_feature" 2>/dev/null || true)"
+  # Pass current_spec to scope the lookup: current_feature alone can be
+  # ambiguous once two specs each have their own "001-..." feature.
+  feature_dir="$(rush_feature_dir "$current_feature" "$current_spec" 2>/dev/null || true)"
 fi
 
 dirty="false"
@@ -73,11 +76,11 @@ result_file="$(mktemp)"
 trap 'rm -f "$result_file"' EXIT
 
 set +e
-"$py" - "$root" "$current_feature" "$feature_dir" "$dirty" "$last_commits_raw" "$detect_json" \
+"$py" - "$root" "$current_spec" "$current_feature" "$feature_dir" "$dirty" "$last_commits_raw" "$detect_json" \
   > "$result_file" <<'PYEOF'
 import json, os, re, sys
 
-root, current_feature, feature_dir, dirty, last_commits_raw, detect_json = sys.argv[1:7]
+root, current_spec, current_feature, feature_dir, dirty, last_commits_raw, detect_json = sys.argv[1:8]
 
 sys.path.insert(0, os.environ.get("RUSH_LIB_DIR") or os.path.join(root, ".rush", "scripts", "lib"))
 import rushlib  # noqa: E402
@@ -150,6 +153,7 @@ if detect_json.strip():
 last_commits = [line for line in last_commits_raw.split("\n") if line.strip() != ""]
 
 out = {
+    "current_spec": current_spec or None,
     "current_feature": current_feature or None,
     "feature_dir": feature_dir or None,
     "tasks": task_counts,
@@ -185,6 +189,7 @@ def show(v):
     return "(none)" if v in (None, "") else v
 
 
+print("current spec: %s" % show(data["current_spec"]))
 print("current feature: %s" % show(data["current_feature"]))
 t = data["tasks"]
 print("tasks: pending=%d in_progress=%d blocked=%d done=%d" % (

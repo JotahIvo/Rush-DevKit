@@ -11,7 +11,11 @@
 
 ## Features & Journeys
 
-<!-- `provides`/`consumes` kind is one of: endpoint | event | component | data | module.
+<!-- `id` is the feature's full path relative to specs/, i.e. "<spec-id>/<feature-id>"
+     (e.g. "001-autenticacao-google/002-entrada-com-google") — features are nested one level
+     under their spec, and this is what makes the id globally unique and directly joinable to
+     a real directory (specs/<id>) without guessing which spec it belongs to.
+     `provides`/`consumes` kind is one of: endpoint | event | component | data | module.
      Each entry: {"kind","name","contract":"path#pointer","from"} — `from` only appears on a
      `consumes` entry and names the feature-id expected to provide it. `depends_on` lists
      feature ids this feature cannot be implemented before. -->

@@ -3,7 +3,7 @@
 #
 # Reads the hook JSON payload (tool_input.file_path, agent_type, ...) on stdin
 # and enforces:
-#   1. specs/*/tasks.md: promoting a task to status "done" is denied unless
+#   1. specs/*/*/tasks.md: promoting a task to status "done" is denied unless
 #      agent_type == "rush-verifier" (only the verifier promotes tasks).
 #   2. .rush/config.json and .rush/memory/constitution.md: any edit is denied;
 #      these require explicit human approval.
@@ -147,7 +147,8 @@ def task_done_map(content):
 
 
 def is_tasks_md(rel_path):
-    return re.search(r"(^|/)specs/[^/]+/tasks\.md$", rel_path) is not None
+    # Features are nested one level under their spec: specs/<spec-id>/<feature-id>/tasks.md.
+    return re.search(r"(^|/)specs/[^/]+/[^/]+/tasks\.md$", rel_path) is not None
 
 
 def relpath(root, file_path):

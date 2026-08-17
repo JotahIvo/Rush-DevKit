@@ -397,10 +397,18 @@ specs_dir = os.path.join(ROOT, "specs")
 if not os.path.isdir(specs_dir):
     add("orphan_specs", "info", True, "No specs/ directory yet — nothing to check.")
 else:
-    feature_dirs = sorted(
+    spec_dirs = sorted(
         d for d in os.listdir(specs_dir)
         if os.path.isdir(os.path.join(specs_dir, d)) and d != "shared-contracts"
     )
+    # Features are nested one level under their spec (specs/<spec-id>/<feature-id>/):
+    # check both levels, since either one having no trace in the repo is signal.
+    feature_dirs = list(spec_dirs)
+    for spec_d in spec_dirs:
+        spec_path = os.path.join(specs_dir, spec_d)
+        for feat_d in sorted(os.listdir(spec_path)):
+            if os.path.isdir(os.path.join(spec_path, feat_d)):
+                feature_dirs.append("%s/%s" % (spec_d, feat_d))
     IGNORE_DIRS = {".git", "node_modules", ".rush", "specs", "dist", "build", "vendor"}
 
     def iter_repo_files():

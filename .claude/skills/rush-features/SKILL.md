@@ -66,10 +66,15 @@ Read before acting, in this order:
    against architecture's bounded contexts; where PRD journeys and architecture boundaries
    disagree, that's a question to ask, not a default to guess.
 
-2. **Create each feature's directory.** For every candidate feature:
-   `.rush/scripts/new-feature.sh <slug> --title "<title>" --json`. It is idempotent — an existing
-   slug returns its directory without overwriting. Collect each response's `feature_id` and `dir`;
-   these are the node ids used in the integration map. Never invent a feature id by hand.
+2. **Create each feature's directory, nested under this spec.** Features are never siblings of
+   their spec — every one lives at `specs/<spec-id>/<feature-id>/`. For every candidate feature:
+   `.rush/scripts/new-feature.sh <spec-id> <slug> --title "<title>" --json`, where `<spec-id>` is
+   the spec whose PRD you just read (already created by `/rush-pitch` via `new-spec.sh`). It is
+   idempotent — an existing slug under that spec returns its directory without overwriting.
+   Collect each response's `dir` (`specs/<spec-id>/<feature-id>`) and build the node id used in the
+   integration map as `<spec-id>/<feature-id>` — never a bare feature id, and never invented by
+   hand: two different specs each number their own features starting at 001, so a bare id is
+   ambiguous the moment there is more than one spec.
 
 3. **For every feature, declare its interfaces before writing anything else:**
    - **provides**: endpoints, events, components, data, or modules this feature exposes to others,
@@ -98,16 +103,16 @@ Read before acting, in this order:
    ```json
    {
      "features": [
-       { "id": "001-auth", "provides": [{ "kind": "endpoint", "name": "POST /auth/login" }],
+       { "id": "003-checkout/001-auth", "provides": [{ "kind": "endpoint", "name": "POST /auth/login" }],
          "consumes": [] },
-       { "id": "004-cart", "provides": [{ "kind": "endpoint", "name": "POST /cart/items" }],
-         "consumes": [{ "kind": "endpoint", "name": "POST /auth/login", "from": "001-auth" }] }
+       { "id": "003-checkout/004-cart", "provides": [{ "kind": "endpoint", "name": "POST /cart/items" }],
+         "consumes": [{ "kind": "endpoint", "name": "POST /auth/login", "from": "003-checkout/001-auth" }] }
      ],
      "shared_contracts": [
-       { "name": "POST /auth/login", "owner": "001-auth", "path": "specs/shared-contracts/auth.md" }
+       { "name": "POST /auth/login", "owner": "003-checkout/001-auth", "path": "specs/shared-contracts/auth.md" }
      ],
      "journeys": [
-       { "name": "guest checkout", "features": ["001-auth", "004-cart"],
+       { "name": "guest checkout", "features": ["003-checkout/001-auth", "003-checkout/004-cart"],
          "test": "tests/journeys/guest-checkout.spec.ts" }
      ]
    }

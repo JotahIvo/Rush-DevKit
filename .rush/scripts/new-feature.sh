@@ -1,9 +1,19 @@
 #!/usr/bin/env bash
-# new-feature.sh - create specs/NNN-<slug>/ from .rush/templates/, register
-# it in .rush/state.json, and make it the current feature. Idempotent: an
-# existing slug returns its directory without overwriting anything.
+# new-feature.sh - create specs/<spec-id>/MMM-<slug>/ (a FEATURE, nested
+# under its parent spec) from .rush/templates/, register it in
+# .rush/state.json, and make it the current feature. Idempotent: an
+# existing slug under that spec returns its directory without
+# overwriting anything.
 #
-# Usage: new-feature.sh <slug> [--title "..."] [--json]
+# A feature is a deliverable unit split out of a spec by /rush-features
+# (or written directly for a spec with only one feature). It always lives
+# inside its spec's own directory - never as a sibling under specs/ - and
+# its id is numbered independently starting at 001 within that spec, the
+# same way task ids restart inside each feature's tasks.md.
+#
+# The spec itself must already exist: create it first with new-spec.sh.
+#
+# Usage: new-feature.sh <spec-id> <slug> [--title "..."] [--json]
 #
 # Exit 0 ok (created or already existed), 2 usage/internal error.
 set -euo pipefail
@@ -12,21 +22,29 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: new-feature.sh <slug> [--title "..."] [--json]
+Usage: new-feature.sh <spec-id> <slug> [--title "..."] [--json]
 
-Creates specs/NNN-<slug>/ (NNN is the next sequential 3-digit id),
-copying spec.md, plan.md, tasks.md, done-contract.md and progress.md
-from .rush/templates/ (only the ones that exist there are copied), with
-{{FEATURE_ID}}, {{FEATURE_TITLE}} and {{DATE}} substituted. Registers
-the feature in .rush/state.json (current_feature, features[]).
+Creates specs/<spec-id>/MMM-<slug>/ (MMM is the next sequential 3-digit
+id *within that spec*; a different spec numbers its own features
+starting at 001 too), copying spec.md, plan.md, tasks.md,
+done-contract.md and progress.md from .rush/templates/ (only the ones
+that exist there are copied), with {{FEATURE_ID}}, {{FEATURE_TITLE}} and
+{{DATE}} substituted. Registers the feature in .rush/state.json
+(current_spec, current_feature, features[] - each record carries the
+owning spec_id).
 
-Idempotent: if a specs/NNN-<slug>/ directory already exists for this
-slug, it is returned as-is (already_existed: true, created: []) -
-existing artifacts are never overwritten. current_feature is still
+<spec-id> may be a full id or a numeric prefix (resolved the same way
+feature ids are, via rush_spec_dir) and must already exist - run
+new-spec.sh first if it doesn't.
+
+Idempotent: if specs/<spec-id>/MMM-<slug>/ already exists for this slug,
+it is returned as-is (already_existed: true, created: []) - existing
+artifacts are never overwritten. current_spec/current_feature are still
 updated to point at it, since re-running this is how you switch the
 active feature.
 
-  <slug>        Kebab-case feature name, e.g. "checkout". Normalised
+  <spec-id>     The parent spec's id or numeric prefix, e.g. "001".
+  <slug>        Kebab-case feature name, e.g. "login-google". Normalised
                 (lowercased, non [a-z0-9-] characters become '-') if not
                 already in that shape.
   --title "..." Human title for the feature. Defaults to the slug with
@@ -41,6 +59,7 @@ EOF
 json_mode="false"
 title_arg=""
 title_given="false"
+spec_id_raw=""
 slug_raw=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -51,15 +70,19 @@ while [ "$#" -gt 0 ]; do
       title_arg="$2"; title_given="true"; shift 2 ;;
     -*) echo "new-feature.sh: unknown option: $1" >&2; usage >&2; exit 2 ;;
     *)
-      if [ -n "$slug_raw" ]; then
+      if [ -z "$spec_id_raw" ]; then
+        spec_id_raw="$1"; shift
+      elif [ -z "$slug_raw" ]; then
+        slug_raw="$1"; shift
+      else
         echo "new-feature.sh: unexpected extra argument: $1" >&2; exit 2
       fi
-      slug_raw="$1"; shift ;;
+      ;;
   esac
 done
 
-if [ -z "$slug_raw" ]; then
-  echo "new-feature.sh: <slug> is required" >&2
+if [ -z "$spec_id_raw" ] || [ -z "$slug_raw" ]; then
+  echo "new-feature.sh: <spec-id> and <slug> are both required" >&2
   usage >&2
   exit 2
 fi
@@ -69,18 +92,16 @@ py="$(rush_python)" || exit 2
 lib="${RUSH_LIB_DIR:-$root/.rush/scripts/lib}/rushlib.py"
 date_str="$(date +%Y-%m-%d)"
 
-result_file="$(mktemp)"
-trap 'rm -f "$result_file"' EXIT
+spec_dir_rel="$(rush_spec_dir "$spec_id_raw")" || exit 2
+spec_id="$(basename "$spec_dir_rel")"
 
-# All the string handling (slugify, next-id, template substitution, file
-# copy) happens in one Python pass, then bash uses its JSON result to
-# update .rush/state.json via rushlib.py's CLI (so the atomic-write logic
-# lives in one place).
-set +e
-"$py" - "$root" "$slug_raw" "$title_arg" "$title_given" "$date_str" > "$result_file" <<'PYEOF'
+result_file="$(mktemp)"
+py_src="$(mktemp "${TMPDIR:-/tmp}/rush-newfeature.XXXXXX.py")"
+trap 'rm -f "$result_file" "$py_src"' EXIT
+cat > "$py_src" <<'PYEOF'
 import json, os, re, sys
 
-root, slug_raw, title_arg, title_given, date_str = sys.argv[1:6]
+root, spec_dir_rel, spec_id, slug_raw, title_arg, title_given, date_str = sys.argv[1:8]
 title_given = title_given == "true"
 
 slug = re.sub(r"[^a-z0-9-]+", "-", slug_raw.strip().lower())
@@ -94,38 +115,36 @@ if title_given:
 else:
     title = " ".join(w.capitalize() for w in slug.split("-") if w)
 
-specs_dir = os.path.join(root, "specs")
-os.makedirs(specs_dir, exist_ok=True)
+spec_abs = os.path.join(root, spec_dir_rel)
+if not os.path.isdir(spec_abs):
+    print("new-feature.sh: spec directory %s does not exist" % spec_dir_rel, file=sys.stderr)
+    sys.exit(2)
 
 existing = None
 next_num = 1
-if os.path.isdir(specs_dir):
-    for name in sorted(os.listdir(specs_dir)):
-        full = os.path.join(specs_dir, name)
-        if not os.path.isdir(full):
-            continue
-        m = re.match(r"^(\d{3})-(.+)$", name)
-        if not m:
-            continue
-        num, existing_slug = int(m.group(1)), m.group(2)
-        if num + 1 > next_num:
-            next_num = num + 1
-        if existing_slug == slug:
-            existing = name
+for name in sorted(os.listdir(spec_abs)):
+    full = os.path.join(spec_abs, name)
+    if not os.path.isdir(full):
+        continue
+    m = re.match(r"^(\d{3})-(.+)$", name)
+    if not m:
+        continue
+    num, existing_slug = int(m.group(1)), m.group(2)
+    if num + 1 > next_num:
+        next_num = num + 1
+    if existing_slug == slug:
+        existing = name
 
 already_existed = existing is not None
 if already_existed:
     feature_id = existing
-    # Preserve a previously-recorded title across idempotent re-runs
-    # instead of silently downgrading it to the slug-derived default
-    # whenever this is called again without --title.
     if not title_given:
         state_path = os.path.join(root, ".rush", "state.json")
         try:
             with open(state_path, encoding="utf-8") as f:
                 state = json.load(f)
             for rec in state.get("features") or []:
-                if isinstance(rec, dict) and rec.get("id") == feature_id and rec.get("title"):
+                if isinstance(rec, dict) and rec.get("id") == feature_id and rec.get("spec_id") == spec_id and rec.get("title"):
                     title = rec["title"]
                     break
         except (OSError, json.JSONDecodeError):
@@ -133,8 +152,8 @@ if already_existed:
 else:
     feature_id = "%03d-%s" % (next_num, slug)
 
-feature_dir = os.path.join(specs_dir, feature_id)
-os.makedirs(feature_dir, exist_ok=True)
+feature_dir_abs = os.path.join(spec_abs, feature_id)
+os.makedirs(feature_dir_abs, exist_ok=True)
 
 created = []
 if not already_existed:
@@ -155,14 +174,15 @@ if not already_existed:
         text = text.replace("{{FEATURE_ID}}", feature_id)
         text = text.replace("{{FEATURE_TITLE}}", title)
         text = text.replace("{{DATE}}", date_str)
-        dest = os.path.join(feature_dir, dest_name)
+        dest = os.path.join(feature_dir_abs, dest_name)
         with open(dest, "w", encoding="utf-8") as f:
             f.write(text)
         created.append(dest_name)
 
 out = {
+    "spec_id": spec_id,
     "feature_id": feature_id,
-    "dir": "specs/%s" % feature_id,
+    "dir": "%s/%s" % (spec_dir_rel, feature_id),
     "title": title,
     "slug": slug,
     "created": created,
@@ -170,6 +190,9 @@ out = {
 }
 print(json.dumps(out, ensure_ascii=False))
 PYEOF
+
+set +e
+"$py" "$py_src" "$root" "$spec_dir_rel" "$spec_id" "$slug_raw" "$title_arg" "$title_given" "$date_str" > "$result_file"
 status=$?
 set -e
 
@@ -187,23 +210,29 @@ already_existed="$("$py" -c "import json,sys; print(json.loads(sys.argv[1])['alr
 
 state="$root/.rush/state.json"
 
-# Title is free text (may contain quotes, backslashes, unicode); build
-# both JSON fragments with Python via argv, never by string-interpolating
-# it into a Python or JSON literal by hand.
+spec_id_json="$("$py" -c "import json,sys; print(json.dumps(sys.argv[1]))" "$spec_id")"
 feature_id_json="$("$py" -c "import json,sys; print(json.dumps(sys.argv[1]))" "$feature_id")"
+"$py" "$lib" json-set "$state" current_spec "$spec_id_json" || exit 2
 "$py" "$lib" json-set "$state" current_feature "$feature_id_json" || exit 2
 
-# Built with -c, not a heredoc: a heredoc inside $( ) is unparseable by
-# macOS bash 3.2 the moment its body contains a backtick, and the failure is
-# a whole-file syntax error rather than anything localised.
-feature_record="$("$py" -c 'import json, sys; fid, fdir, title = sys.argv[1:4]; print(json.dumps({"id": fid, "dir": fdir, "title": title}))' "$feature_id" "$feature_dir" "$title")"
-"$py" "$lib" json-list-append "$state" features "$feature_record" --key id || exit 2
+feature_record_file="$(mktemp)"
+trap 'rm -f "$result_file" "$py_src" "$feature_record_file"' EXIT
+"$py" -c "
+import json, sys
+spec_id, feature_id, feature_dir, title = sys.argv[1:5]
+print(json.dumps({'id': feature_id, 'spec_id': spec_id, 'dir': feature_dir, 'title': title}))
+" "$spec_id" "$feature_id" "$feature_dir" "$title" > "$feature_record_file"
+feature_record="$(cat "$feature_record_file")"
+# Dedup by 'dir', not 'id': feature ids restart at 001 inside every spec on
+# purpose, so "001-..." from two different specs is an expected collision on
+# 'id' alone. 'dir' (specs/<spec-id>/<feature-id>) is unique by construction.
+"$py" "$lib" json-list-append "$state" features "$feature_record" --key dir || exit 2
 
 if [ "$json_mode" = "true" ]; then
   printf '%s\n' "$payload"
 else
   if [ "$already_existed" = "True" ]; then
-    rush_info "feature '$feature_id' already existed at $feature_dir (now the current feature)"
+    rush_info "feature '$feature_id' already existed at $feature_dir (now the current feature, spec '$spec_id')"
   else
     rush_ok "created $feature_dir"
     "$py" -c "

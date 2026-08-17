@@ -363,13 +363,22 @@ def read(rel):
         return None
 
 def feature_ids():
+    # Features live nested one level under their spec: specs/<spec-id>/<feature-id>/.
+    # Returns "<spec-id>/<feature-id>" composites so "specs/%s" % fid below still
+    # points at the right directory without every caller needing to know about
+    # the nesting.
     specs = os.path.join(root, "specs")
     if not os.path.isdir(specs):
         return []
     out = []
-    for name in sorted(os.listdir(specs)):
-        if os.path.isdir(os.path.join(specs, name)) and re.match(r"^\d{3}-", name):
-            out.append(name)
+    for spec_name in sorted(os.listdir(specs)):
+        spec_path = os.path.join(specs, spec_name)
+        if not os.path.isdir(spec_path) or not re.match(r"^\d{3}-", spec_name):
+            continue
+        for feat_name in sorted(os.listdir(spec_path)):
+            feat_path = os.path.join(spec_path, feat_name)
+            if os.path.isdir(feat_path) and re.match(r"^\d{3}-", feat_name):
+                out.append("%s/%s" % (spec_name, feat_name))
     return out
 
 violations = []

@@ -48,14 +48,20 @@ if [ ! -f "$map_file" ]; then
   # A missing map is only a problem once features exist. A fresh project has nothing to
   # connect yet, and reporting an internal error there would make doctor.sh cry wolf on
   # every clean install.
+  # Features are nested one level under their spec: specs/<spec-id>/<feature-id>/.
+  # A spec dir with only pitch.md/prd.md (no features split out yet) has
+  # nothing to connect, so it must not count here.
   feature_count=0
   if [ -d "$root/specs" ]; then
-    for d in "$root"/specs/*/; do
-      [ -d "$d" ] || continue
-      case "$(basename "$d")" in
+    for sd in "$root"/specs/*/; do
+      [ -d "$sd" ] || continue
+      case "$(basename "$sd")" in
         shared-contracts) continue ;;
       esac
-      feature_count=$((feature_count + 1))
+      for fd in "$sd"*/; do
+        [ -d "$fd" ] || continue
+        feature_count=$((feature_count + 1))
+      done
     done
   fi
   if [ "$feature_count" -eq 0 ]; then

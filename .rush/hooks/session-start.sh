@@ -100,6 +100,10 @@ def main():
 
     lines = ["## Rush session state"]
 
+    spec = data.get("current_spec")
+    if spec:
+        lines.append("- Current spec: %s" % spec)
+
     feature = data.get("current_feature")
     if feature:
         lines.append("- Current feature: %s" % feature)

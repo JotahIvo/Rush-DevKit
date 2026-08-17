@@ -55,9 +55,15 @@ map must be fixed first, because a spec written against a broken map inherits th
 
 ## Process
 
-1. **Resolve the feature.** `.rush/scripts/new-feature.sh <slug> --json` if it does not exist yet,
-   otherwise locate `specs/<feature-id>/`. Read any existing artifacts before overwriting: this
-   command is re-runnable and must not silently discard human edits.
+1. **Resolve the feature.** Features live nested under their spec (`specs/<spec-id>/<feature-id>/`).
+   If it already exists, locate it (a bare id/prefix resolves across specs; if that's ambiguous,
+   the error names the colliding specs — ask the user which one). If it does not exist yet, this
+   spec must already exist first (created by `/rush-pitch` via `new-spec.sh` — this command does
+   not create specs, only features inside one): run
+   `.rush/scripts/new-feature.sh <spec-id> <slug> --json`, using the current spec
+   (`.rush/scripts/session-start.sh --json` → `current_spec`) unless the user named a different one.
+   Read any existing artifacts before overwriting: this command is re-runnable and must not silently
+   discard human edits.
 
 2. **Extract the contract surface from the integration map.** List, explicitly, what this feature
    `provides` and `consumes`. Every consumed item must resolve to a provider; every provided item

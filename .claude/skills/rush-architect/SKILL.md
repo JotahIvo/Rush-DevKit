@@ -1,7 +1,7 @@
 ---
 name: rush-architect
 description: Design the architecture of a feature across quality attributes, boundaries, contracts, security, resilience, performance and observability, producing candidate approaches with trade-offs, an ADR, and executable fitness functions. Use after a pitch is approved and before the PRD and spec are written.
-argument-hint: "<feature-id>"
+argument-hint: "<spec-id>"
 model: opus
 disable-model-invocation: false
 ---
@@ -23,8 +23,10 @@ Not yours: what to build (pitch/PRD), implementation detail (plan), or writing c
    the system today.
 3. `.rush/memory/decisions/` — existing ADRs. Do not re-decide what was decided; build on it or
    explicitly supersede it.
-4. `specs/<feature-id>/pitch.md` — the problem and the appetite. Appetite constrains architecture:
-   a two-week feature does not get a three-month design.
+4. `specs/<spec-id>/pitch.md` — the problem and the appetite. This runs at the **spec** level,
+   before `/rush-features` splits it into deliverable units — `<spec-id>` is the pitch's own
+   numbered directory, not a feature's. Appetite constrains architecture: a two-week spec does not
+   get a three-month design.
 5. `specs/integration-map.md` — what already exists to be reused rather than rebuilt.
 6. `rush-explorer` for the areas of code this feature touches. `rush-researcher` for library,
    protocol or platform facts you are not certain about — never guess a version, limit or

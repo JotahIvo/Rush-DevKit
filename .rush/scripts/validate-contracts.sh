@@ -71,27 +71,41 @@ except Exception:
 
 
 def feature_dirs():
+    # Features live nested one level under their spec: specs/<spec-id>/<feature-id>/.
+    # Returns "<spec-id>/<feature-id>" composites; every path built below as
+    # os.path.join(root, "specs", fid, ...) keeps working unchanged.
     specs = os.path.join(root, "specs")
     if not os.path.isdir(specs):
         return []
     out = []
-    for name in sorted(os.listdir(specs)):
-        if os.path.isdir(os.path.join(specs, name)) and re.match(r"^\d{3}-", name):
-            out.append(name)
+    for spec_name in sorted(os.listdir(specs)):
+        spec_path = os.path.join(specs, spec_name)
+        if not os.path.isdir(spec_path) or not re.match(r"^\d{3}-", spec_name):
+            continue
+        for feat_name in sorted(os.listdir(spec_path)):
+            feat_path = os.path.join(spec_path, feat_name)
+            if os.path.isdir(feat_path) and re.match(r"^\d{3}-", feat_name):
+                out.append("%s/%s" % (spec_name, feat_name))
     return out
 
 
 if target == "--all":
     fids = feature_dirs()
 else:
-    fdir = os.path.join(root, "specs", target)
-    if not os.path.isdir(fdir):
-        matches = [n for n in feature_dirs() if n.startswith(target)]
+    all_fids = feature_dirs()
+    if target in all_fids or os.path.isdir(os.path.join(root, "specs", target)):
+        fids = [target]
+    else:
+        # target is a bare feature id/prefix without its spec segment (the
+        # common case, e.g. "003" or "003-entrada"): resolve it against the
+        # trailing "<feature-id>" component of every "<spec-id>/<feature-id>"
+        # pair, exact match first, same order as rush_feature_dir.
+        exact = [n for n in all_fids if n.split("/")[-1] == target]
+        matches = exact if exact else [n for n in all_fids if n.split("/")[-1].startswith(target)]
         if len(matches) != 1:
             print(json.dumps({"error": "no feature matching '%s'" % target}), file=sys.stderr)
             sys.exit(2)
-        target = matches[0]
-    fids = [target]
+        fids = [matches[0]]
 
 contract_dirs = []
 for fid in fids:

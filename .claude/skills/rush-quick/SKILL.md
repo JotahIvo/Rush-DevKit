@@ -71,8 +71,13 @@ Read before acting, in this order:
    `level: "L"`, stop here — do not create a feature directory for it under this skill — and tell
    the user to use `/rush-pitch` instead, naming the forcing signal.
 
-2. **Resolve the feature.** `.rush/scripts/new-feature.sh <slug> --json` if it doesn't exist yet,
-   otherwise locate `specs/<feature-id>/` and read what's already there.
+2. **Resolve the feature.** Every feature nests under a spec (`specs/<spec-id>/<feature-id>/`), even
+   an M-scope one — this path skips writing `pitch.md`/`prd.md`/`architecture.md` content, not the
+   numbering. If it doesn't exist yet: run `.rush/scripts/new-spec.sh <slug> --title "<title>" --json`
+   (this only scaffolds `pitch.md`/`prd.md` templates — leave them untouched, per Guardrail 10) to get
+   `spec_id`, then `.rush/scripts/new-feature.sh <spec_id> <slug> --json` using the same slug to
+   create the single feature inside it. Both calls are idempotent. If it already exists, locate it
+   (a bare id/prefix resolves across specs; the error names any collision).
 
 3. **Understand the touched code narrowly.** Where the change lands on existing code, dispatch
    `rush-explorer` with one specific question (e.g. "where is the rate limiter configured and what

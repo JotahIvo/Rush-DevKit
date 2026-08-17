@@ -161,15 +161,27 @@ rush_config_bool() {
     "$root/.rush/config.json" "$path" --type bool --default "$default"
 }
 
-# rush_feature_dir <id>
-# Echo "specs/<full-feature-id>" resolving a partial numeric prefix
-# ("007" -> "specs/007-checkout"). Exact matches win over prefix
+# --- spec / feature nesting -------------------------------------------
+#
+# specs/<spec-id>/ is the PARENT unit ("spec"): pitch.md and prd.md live
+# directly in it. Deliverable work lives one level deeper, in
+# specs/<spec-id>/<feature-id>/: spec.md, plan.md, tasks.md,
+# done-contract.md, progress.md. Both levels carry their own independent
+# numeric id (feature ids restart at 001 inside each spec, same as task
+# ids restart inside each feature's tasks.md). This nesting exists because
+# a spec is routinely one appetite/PRD worth of work split into several
+# features by /rush-features, and those features belong together on disk,
+# not scattered as siblings with only integration-map.md tying them back.
+
+# rush_spec_dir <id>
+# Echo "specs/<full-spec-id>" resolving a partial numeric prefix
+# ("001" -> "specs/001-autenticacao"). Exact matches win over prefix
 # matching. Returns 1 with a message on stderr if there is no match or
 # more than one.
-rush_feature_dir() {
+rush_spec_dir() {
   local id="${1:-}"
   if [ -z "$id" ]; then
-    printf '[rush] ERROR: rush_feature_dir requires a feature id.\n' >&2
+    printf '[rush] ERROR: rush_spec_dir requires a spec id.\n' >&2
     return 1
   fi
   local root specs
@@ -195,21 +207,127 @@ rush_feature_dir() {
   done
   eval "$restore_nullglob" 2>/dev/null || true
   if [ "$count" -eq 0 ]; then
-    printf "[rush] ERROR: no feature matches id/prefix '%s' under specs/.\n" "$id" >&2
+    printf "[rush] ERROR: no spec matches id/prefix '%s' under specs/.\n" "$id" >&2
     return 1
   fi
   if [ "$count" -gt 1 ]; then
-    printf "[rush] ERROR: '%s' matches more than one feature under specs/; be more specific.\n" "$id" >&2
+    printf "[rush] ERROR: '%s' matches more than one spec under specs/; be more specific.\n" "$id" >&2
     return 1
   fi
   printf 'specs/%s\n' "$match"
   return 0
 }
 
+# rush_feature_dir <feature-id> [spec-id]
+# Echo "specs/<spec-id>/<full-feature-id>" — the level where
+# spec.md/plan.md/tasks.md/done-contract.md/progress.md actually live.
+# Searches every spec under specs/*/ unless [spec-id] narrows it (pass it
+# whenever you already know the spec, and always when a feature id/prefix
+# could plausibly collide across specs). Exact match wins over prefix
+# match. Returns 1 with a message on stderr if there is no match or more
+# than one — the error names the ambiguity and how to resolve it.
+rush_feature_dir() {
+  local id="${1:-}"
+  local spec_id="${2:-}"
+  if [ -z "$id" ]; then
+    printf '[rush] ERROR: rush_feature_dir requires a feature id.\n' >&2
+    return 1
+  fi
+  local root specs
+  root="$(_rush_root_env)" || return 1
+  specs="$root/specs"
+  if [ ! -d "$specs" ]; then
+    printf '[rush] ERROR: no specs/ directory under %s.\n' "$root" >&2
+    return 1
+  fi
+
+  local scope=""
+  if [ -n "$spec_id" ]; then
+    local spec_dir
+    spec_dir="$(rush_spec_dir "$spec_id")" || return 1
+    scope="$root/$spec_dir"
+  fi
+
+  local restore_nullglob count match sd d
+  restore_nullglob="$(shopt -p nullglob 2>/dev/null || true)"
+  shopt -s nullglob
+
+  # Pass 1: exact match.
+  count=0
+  match=""
+  if [ -n "$scope" ]; then
+    if [ -d "$scope/$id" ]; then
+      count=1
+      match="$scope/$id"
+    fi
+  else
+    for sd in "$specs"/*/; do
+      if [ -d "$sd$id" ]; then
+        count=$((count + 1))
+        match="$sd$id"
+      fi
+    done
+  fi
+  if [ "$count" -eq 1 ]; then
+    eval "$restore_nullglob" 2>/dev/null || true
+    printf 'specs/%s\n' "${match#"$specs"/}"
+    return 0
+  fi
+  if [ "$count" -gt 1 ]; then
+    eval "$restore_nullglob" 2>/dev/null || true
+    printf "[rush] ERROR: '%s' matches a feature under more than one spec; pass the spec id (rush_feature_dir '%s' <spec-id>).\n" "$id" "$id" >&2
+    return 1
+  fi
+
+  # Pass 2: prefix match.
+  count=0
+  match=""
+  if [ -n "$scope" ]; then
+    for d in "$scope/$id"*/; do
+      count=$((count + 1))
+      match="${d%/}"
+    done
+  else
+    for sd in "$specs"/*/; do
+      for d in "$sd$id"*/; do
+        count=$((count + 1))
+        match="${d%/}"
+      done
+    done
+  fi
+  eval "$restore_nullglob" 2>/dev/null || true
+
+  if [ "$count" -eq 0 ]; then
+    printf "[rush] ERROR: no feature matches id/prefix '%s' under specs/*/.\n" "$id" >&2
+    return 1
+  fi
+  if [ "$count" -gt 1 ]; then
+    printf "[rush] ERROR: '%s' matches more than one feature under specs/*/; be more specific (or pass the spec id).\n" "$id" >&2
+    return 1
+  fi
+  printf 'specs/%s\n' "${match#"$specs"/}"
+  return 0
+}
+
+# rush_current_spec
+# Echo the active spec id from .rush/state.json -> current_spec. Prints an
+# empty string (exit 0) when there is no state.json or none is set.
+rush_current_spec() {
+  local root py state
+  root="$(_rush_root_env)" || return 1
+  state="$root/.rush/state.json"
+  if [ ! -f "$state" ]; then
+    printf ''
+    return 0
+  fi
+  py="$(rush_python)" || return 1
+  "$py" "${RUSH_LIB_DIR:-$root/.rush/scripts/lib}/rushlib.py" json-get "$state" current_spec --default ""
+}
+
 # rush_current_feature
-# Echo the active feature id from .rush/state.json -> current_feature.
-# Prints an empty string (exit 0) when there is no state.json or no
-# feature is set.
+# Echo the active feature id (inside the active spec) from
+# .rush/state.json -> current_feature. Prints an empty string (exit 0)
+# when there is no state.json or no feature is set.
 rush_current_feature() {
   local root py state
   root="$(_rush_root_env)" || return 1

@@ -70,9 +70,14 @@ Read before acting, in this order:
    the problem's size? Record it as a band (e.g. "small — days, not weeks" or "large — a quarter"),
    never as a task estimate. Appetite is what stops scope creep later; do not skip it.
 
-6. **Resolve the feature id.** If `<id>` does not yet exist under `specs/`, this pitch is
-   pre-feature — write to `specs/<slug>/pitch.md` using a slug derived from the idea; feature
-   numbering happens later, in `/rush-features` via `new-feature.sh`.
+6. **Resolve the spec id.** A pitch always creates (or resumes) a **spec** — the numbered parent
+   directory that will hold `pitch.md`, `prd.md`, and eventually one or more features nested inside
+   it. If `<id>` doesn't already exist under `specs/`, run
+   `.rush/scripts/new-spec.sh <slug> --title "<title>" --json` right now, before writing anything —
+   do not defer numbering to a later command. It is idempotent, so re-running this pitch for an
+   existing spec is safe: pass the existing slug and it returns the same directory. Collect the
+   response's `spec_id` and `dir` (`specs/<spec-id>`); that is where `pitch.md` is written. A pitch
+   is never staged unnumbered — every spec directory has its id from the moment it exists.
 
 7. **Write `pitch.md`.** Required sections, in order:
    - **Problem**: the problem, not the solution. Who feels it and how often.
@@ -95,14 +100,14 @@ Read before acting, in this order:
 Write all user-facing output and generated artifacts in the language set in
 `.rush/config.json → language.docs`.
 
-`specs/<id-or-slug>/pitch.md` (or project root staging area if the id doesn't exist yet). Report to
-the user, in ≤ 8 lines:
+`specs/<spec-id>/pitch.md`. Report to the user, in ≤ 8 lines:
 
+- the spec id assigned (or resumed) and its title
 - one-sentence problem statement and audience
 - appetite band
 - what's explicitly out of scope (one line)
 - open questions, if any
-- suggested next command (`/rush-architect` or `/rush-prd`)
+- suggested next command (`/rush-architect <spec-id>` or `/rush-prd <spec-id>`)
 
 Do not paste the artifact into the chat.
 

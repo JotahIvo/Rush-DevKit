@@ -74,13 +74,24 @@ import json, os, re, subprocess, sys
 root, feature_id = sys.argv[1], sys.argv[2]
 
 def resolve_feature_dir():
+    # Features live nested one level under their spec: specs/<spec-id>/<feature-id>/.
+    # Accepts either the full "<spec-id>/<feature-id>" or a bare feature
+    # id/prefix (the common case), resolved across every spec.
     specs = os.path.join(root, "specs")
-    if os.path.isdir(os.path.join(specs, feature_id)):
-        return feature_id
     if not os.path.isdir(specs):
         return None
-    matches = [n for n in sorted(os.listdir(specs))
-               if os.path.isdir(os.path.join(specs, n)) and n.startswith(feature_id)]
+    if os.path.isdir(os.path.join(specs, feature_id)):
+        return feature_id
+    all_fids = []
+    for spec_name in sorted(os.listdir(specs)):
+        spec_path = os.path.join(specs, spec_name)
+        if not os.path.isdir(spec_path):
+            continue
+        for feat_name in sorted(os.listdir(spec_path)):
+            if os.path.isdir(os.path.join(spec_path, feat_name)):
+                all_fids.append("%s/%s" % (spec_name, feat_name))
+    exact = [n for n in all_fids if n.split("/")[-1] == feature_id]
+    matches = exact if exact else [n for n in all_fids if n.split("/")[-1].startswith(feature_id)]
     if len(matches) == 1:
         return matches[0]
     return None
