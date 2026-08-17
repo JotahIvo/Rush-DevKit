@@ -271,6 +271,39 @@ elif sh_files:
     add("scripts_syntax", "info", True, "All scripts pass 'bash -n'.")
 
 # ---------------------------------------------------------------------------
+# 2b. shell portability against macOS bash 3.2
+#
+# `bash -n` above only proves the scripts parse under *this* bash. macOS ships
+# 3.2 forever (bash 4+ is GPLv3), and it rejects constructs that bash 5 accepts
+# silently. This already happened once: a backtick inside a heredoc inside $( )
+# made guard-edit.sh unparseable, and because it is a PreToolUse hook, every
+# write in the project was blocked - including the fix. Linux CI stayed green
+# throughout. That is why this check is separate from bash -n.
+# ---------------------------------------------------------------------------
+lint_py = os.path.join(ROOT, ".rush", "scripts", "lib", "lint_portability.py")
+if os.path.isfile(lint_py):
+    try:
+        proc = subprocess.run(
+            [sys.executable, lint_py, "true", ROOT],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=60,
+        )
+        lint = json.loads(proc.stdout.decode("utf-8", "replace") or "{}")
+        errs = [v for v in lint.get("violations", []) if v.get("severity") == "error"]
+        if errs:
+            add("shell_portability", "error", False,
+                "constructs that break on macOS bash 3.2:\n  - " + "\n  - ".join(
+                    "%s:%s %s" % (v["file"], v["line"], v["message"]) for v in errs),
+                "Run .rush/scripts/lint-shell-portability.sh for detail.")
+        else:
+            add("shell_portability", "info", True,
+                "No bash-3.2-breaking constructs (%d files scanned)."
+                % lint.get("scanned", 0))
+    except Exception as exc:
+        add("shell_portability", "warning", False,
+            "portability lint could not run: %s" % exc,
+            "Run .rush/scripts/lint-shell-portability.sh manually.")
+
+# ---------------------------------------------------------------------------
 # 3. every hook referenced in .claude/settings.json exists and is executable
 # ---------------------------------------------------------------------------
 settings_path = os.path.join(ROOT, ".claude", "settings.json")

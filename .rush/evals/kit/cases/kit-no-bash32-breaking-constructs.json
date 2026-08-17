@@ -1,0 +1,31 @@
+{
+  "id": "kit-no-bash32-breaking-constructs",
+  "agent": "kit",
+  "description": "Guards a real incident: a literal backtick inside a heredoc inside $( ) made .rush/hooks/guard-edit.sh unparseable on macOS bash 3.2. Because it is a PreToolUse hook, the parse error blocked every Write and Edit in the project — including the edit that would have fixed it. bash -n on Linux stayed green the whole time, so only a dedicated static check catches this class.",
+  "given": {
+    "cwd": ".",
+    "scenario": "The kit as shipped, run from the project root, plus the synthetic fixture .rush/evals/fixtures/bash32-hazard/hazard.sh that reproduces the exact construct from the incident."
+  },
+  "graders": [
+    {
+      "type": "script",
+      "run": ".rush/scripts/lint-shell-portability.sh --json",
+      "expect": "exit 0"
+    },
+    {
+      "type": "script",
+      "run": ".rush/scripts/lint-shell-portability.sh --json",
+      "expect": "contains: \"ok\": true"
+    },
+    {
+      "type": "script",
+      "run": ".rush/scripts/lint-shell-portability.sh .rush/evals/fixtures/bash32-hazard/hazard.sh",
+      "expect": "exit 1"
+    },
+    {
+      "type": "script",
+      "run": ".rush/scripts/lint-shell-portability.sh --json .rush/evals/fixtures/bash32-hazard/hazard.sh",
+      "expect": "contains: heredoc_in_command_substitution"
+    }
+  ]
+}

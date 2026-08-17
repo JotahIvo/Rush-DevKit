@@ -74,7 +74,15 @@ if [ -z "$RAW" ]; then
   exit 0
 fi
 
-PYCODE=$(cat <<'PYEOF'
+# Python source goes to a temp file, never through $(cat <<HEREDOC).
+# Reason (real bug, macOS bash 3.2): the command-substitution parser scans the
+# heredoc body and chokes on a literal backtick with "unexpected EOF while
+# looking for matching `'". That bricked this hook, and a broken PreToolUse
+# hook blocks every write in the project — including its own fix.
+# Keeping stdin free also lets Python read the hook payload without argv limits.
+PYFILE="$(mktemp "${TMPDIR:-/tmp}/rush-hook.XXXXXX")" || exit 0
+trap 'rm -f "$PYFILE"' EXIT
+cat > "$PYFILE" <<'PYEOF'
 import json
 import sys
 
@@ -148,7 +156,6 @@ try:
 except Exception:
     pass
 PYEOF
-)
 
-printf '%s' "$RAW" | python3 -c "$PYCODE" 2>/dev/null
+printf '%s' "$RAW" | python3 "$PYFILE" 2>/dev/null
 exit 0

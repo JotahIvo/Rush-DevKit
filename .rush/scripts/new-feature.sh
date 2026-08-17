@@ -193,12 +193,10 @@ state="$root/.rush/state.json"
 feature_id_json="$("$py" -c "import json,sys; print(json.dumps(sys.argv[1]))" "$feature_id")"
 "$py" "$lib" json-set "$state" current_feature "$feature_id_json" || exit 2
 
-feature_record="$("$py" - "$feature_id" "$feature_dir" "$title" <<'PYEOF'
-import json, sys
-fid, fdir, title = sys.argv[1:4]
-print(json.dumps({"id": fid, "dir": fdir, "title": title}))
-PYEOF
-)"
+# Built with -c, not a heredoc: a heredoc inside $( ) is unparseable by
+# macOS bash 3.2 the moment its body contains a backtick, and the failure is
+# a whole-file syntax error rather than anything localised.
+feature_record="$("$py" -c 'import json, sys; fid, fdir, title = sys.argv[1:4]; print(json.dumps({"id": fid, "dir": fdir, "title": title}))' "$feature_id" "$feature_dir" "$title")"
 "$py" "$lib" json-list-append "$state" features "$feature_record" --key id || exit 2
 
 if [ "$json_mode" = "true" ]; then

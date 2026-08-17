@@ -57,7 +57,15 @@ if [ -z "$ROOT" ] || [ ! -d "$ROOT/.rush" ]; then
   exit 0
 fi
 
-PYCODE=$(cat <<'PYEOF'
+# Python source goes to a temp file, never through $(cat <<HEREDOC).
+# Reason (real bug, macOS bash 3.2): the command-substitution parser scans the
+# heredoc body and chokes on a literal backtick with "unexpected EOF while
+# looking for matching backtick-quote. That bricked this hook, and a broken PreToolUse
+# hook blocks every write in the project — including its own fix.
+# Keeping stdin free also lets Python read the hook payload without argv limits.
+PYFILE="$(mktemp "${TMPDIR:-/tmp}/rush-hook.XXXXXX")" || exit 0
+trap 'rm -f "$PYFILE"' EXIT
+cat > "$PYFILE" <<'PYEOF'
 import fnmatch
 import json
 import os
@@ -95,10 +103,12 @@ def allow(system_message=None):
 
 
 TASK_ID_RE = re.compile(r"\b(T-?\d+|TASK-\d+)\b")
-# The shipped template writes the status as markdown code: "- status: `done`".
-# Allow the usual decorations (backtick, quote, asterisk, bracket) around the word.
+# The shipped template writes the status as markdown code: "- status: <bt>done<bt>"
+# (<bt> = backtick). Allow the usual decorations around the word. The backtick is
+# written as \x60 on purpose: a literal one here has already broken this file once
+# under macOS bash 3.2, and nothing warns you until every write is blocked.
 DONE_STATUS_RE = re.compile(
-    r"\bstatus\b\s*[:=]\s*[`'\"*\[\s]*done\b", re.IGNORECASE
+    "\\bstatus\\b\\s*[:=]\\s*[\\x60'\"*\\[\\s]*done\\b", re.IGNORECASE
 )
 DONE_CHECKBOX_RE = re.compile(r"-\s*\[[xX]\]")
 
@@ -107,7 +117,8 @@ def task_done_map(content):
     """Best-effort map of {task_id: is_done}, stateful across lines.
 
     The shipped tasks-template.md puts the id on a heading ('### T1 - Title')
-    and the status on a following bullet ('- status: `done`'), so a same-line
+    and the status on a following bullet ('- status: done', usually in backticks),
+    so a same-line
     heuristic would miss every real promotion. We therefore track the current
     task: a heading (or any line carrying a task id) opens a task scope, and a
     later 'status: done' inside that scope marks it done. Same-line and
@@ -199,10 +210,20 @@ def main():
     if rel_path in protected_suffixes or any(
         rel_path.endswith("/" + p) for p in protected_suffixes
     ):
+        # Creating these is how /rush-init and /rush-new bootstrap a project, so a
+        # blanket deny made the harness unable to install itself. What must stay
+        # protected is *changing* an existing one behind the human's back: config
+        # and constitution are the two files every other rule is derived from.
+        if not os.path.isfile(os.path.join(root, rel_path)):
+            allow(
+                "Creating %s. This file is human-owned from now on: later edits "
+                "are blocked and must be made by you or by re-running /rush-init "
+                "after you remove it." % rel_path
+            )
         deny(
-            "%s requires explicit human approval to change — an agent may not "
-            "edit it. Ask the human to edit this file directly, or re-run "
-            "/rush-init if it needs to be regenerated." % rel_path
+            "%s already exists and requires explicit human approval to change — "
+            "an agent may not edit it. Edit it yourself, or delete it and re-run "
+            "/rush-init to regenerate it from scratch." % rel_path
         )
 
     # 1. tasks.md: only rush-verifier may set a task to 'done'.
@@ -285,8 +306,7 @@ except SystemExit:
 except Exception:
     sys.exit(0)
 PYEOF
-)
 
-python3 -c "$PYCODE" "$ROOT"
+python3 "$PYFILE" "$ROOT"
 rc=$?
 exit "$rc"
