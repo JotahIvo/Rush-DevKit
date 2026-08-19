@@ -146,7 +146,7 @@ Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` 
 |---|---|
 | [Getting started](docs/getting-started.md) | Instalação e um passo a passo completo de uma feature |
 | [Fluxo](docs/flow.md) | Triagem S/M/L, gates e a fronteira O QUE / COMO |
-| [Agentes](docs/agents.md) | Referência dos 18 skills e 3 subagents |
+| [Agentes](docs/agents.md) | Referência dos 18 skills e 4 subagents |
 | [Harness](docs/harness.md) | Config, hooks, loop do agente, memória |
 | [Definition of Done](docs/definition-of-done.md) | A cadeia de "pronto" em 4 níveis |
 | [Integração](docs/integration.md) | Integration map, shared contracts, journey tests |

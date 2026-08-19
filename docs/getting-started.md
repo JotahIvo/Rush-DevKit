@@ -233,7 +233,7 @@ aconteceu no caminho em um mecanismo permanente — veja [`evals.md`](./evals.md
 
 ## Próximos passos
 
-- Entenda os 18 skills e 3 subagents em [`agents.md`](./agents.md).
+- Entenda os 18 skills e 4 subagents em [`agents.md`](./agents.md).
 - Entenda a triagem S/M/L e o fluxo completo L em [`flow.md`](./flow.md).
 - Entenda hooks, config e os limites de segurança em [`harness.md`](./harness.md).
 - Entenda o que "pronto" significa em cada nível em [`definition-of-done.md`](./definition-of-done.md).

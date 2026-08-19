@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.4.0
+
+Token-cost changes, driven by real usage: a Pro-plan session burning its whole budget just
+planning one spec's features, before `/rush-spec-all` could get through all of them for a
+multi-feature spec, and shared memory files (`.rush/memory/debt.md`, `.rush/memory/architecture.md`)
+that only ever grow as a project accumulates specs, read in full by every skill that touches them.
+
+### Added
+
+- **`rush-spec-runner` subagent** (`.claude/agents/rush-spec-runner.md`) — runs `/rush-spec`'s
+  complete process for exactly one feature, in its own isolated context, and returns a compact
+  structured result. It is not a different process from `/rush-spec`: it reads and follows
+  `.claude/skills/rush-spec/SKILL.md` itself, with one behavioural difference documented in its own
+  file — a question that would normally block on the user instead becomes a recorded default plus a
+  `NEEDS_HUMAN_DECISION` flag in its report, since a batch dispatch has no one watching in real time
+  to answer it.
+- **`.rush/scripts/memory-prune.sh`** — archives resolved/closed sections out of `.rush/memory/debt.md`
+  (status `accepted`/`repaid`, past `memory.archive_after_days`) and `.rush/memory/architecture.md`'s
+  per-spec digest (only once every feature under that spec has its `feature_close` gate confirmed in
+  `.rush/state.json`, and past the same threshold), into sibling `debt.archive.md` /
+  `architecture.archive.md` files next to them. Nothing is deleted — `--restore <id>` moves one
+  section back. `--dry-run --json` reports what would move without writing.
+- **`memory` config block** (`.rush/config.json` → `memory.archive_after_days`, default `90`) —
+  optional; a `config.json` from before this version behaves exactly as if it were present with the
+  default, nothing breaks by its absence.
+- **`doctor.sh`'s `memory_growth` check** — runs `memory-prune.sh --dry-run` and flags when
+  `.rush/memory/debt.md` or `architecture.md` have sections eligible to archive, or have grown past
+  a size heuristic even with nothing yet eligible.
+
+### Changed
+
+- **`/rush-spec-all` dispatches one `rush-spec-runner` subagent per feature instead of running
+  `/rush-spec`'s process inline for each one.** Previously, specifying N features under one spec
+  meant N full passes of exploration, contract generation and validation retries all accumulating in
+  the same conversation — feature 10 carried the weight of everything read and written for the 9
+  before it. Now only each feature's final structured result (roughly a dozen lines) returns to the
+  conversation; the exploration, drafts and validation loop that produced it stay inside that
+  feature's own subagent context and are discarded once it reports back. Sequencing, dependency
+  ordering (provider before consumer) and "one feature failing doesn't stop the rest" are unchanged
+  — only the isolation mechanism is new. Features are still dispatched one at a time, never
+  concurrently, even when they don't depend on each other; parallelising independent features would
+  save wall-clock time, not token cost, and is not what this version does.
+- **`rush-architect`'s Inputs** now say explicitly to read `.rush/memory/architecture.md` in full
+  only when the whole cross-spec picture is genuinely needed, and to prefer
+  `rushlib.py parse-headings` plus reading only the relevant spec(s)' digest sections otherwise —
+  the file accumulates one section per spec for the life of the project, and most decisions only
+  need the sections actually relevant to them.
+- **`rush-brief`'s Input 7** now scopes its `debt.md` read to entries whose "Originating
+  feature/task" names the feature being briefed, instead of implying a read of the whole file for
+  every brief.
+- **`rush-retro`** gained step 8b: after accepting/repaying debt or confirming a spec's last
+  `feature_close` gate, run `memory-prune.sh --dry-run --json` and report what it would archive,
+  rather than leaving archiving to be discovered separately via `doctor.sh`.
+
+None of this changes what any artifact says or what any check enforces — it changes where the
+process that produces them runs, and how much of it stays in view afterward.
+
 ## 0.3.0
 
 Six workflow changes, all driven by real friction running the kit on a live project: too many

@@ -429,6 +429,22 @@
         "stale_days": 14
       }
     },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Tuning for memory-prune.sh, which archives resolved/closed sections out of .rush/memory/debt.md and .rush/memory/architecture.md's per-spec digest so they stop growing forever and every skill that reads one in full stops paying, on every read, for history nobody needs. Optional block: a config.json predating this key behaves exactly as if it were present with these defaults — nothing breaks by its absence.",
+      "properties": {
+        "archive_after_days": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Age, in days since a section's most recent YYYY-MM-DD date, before memory-prune.sh treats a resolved debt.md entry (status accepted/repaid) or a fully-closed spec's architecture digest section as eligible to archive. An entry with status 'open', or a spec not yet fully closed (every feature's feature_close gate confirmed in .rush/state.json), is never eligible regardless of age.",
+          "default": 90
+        }
+      },
+      "default": {
+        "archive_after_days": 90
+      }
+    },
     "ai_features": {
       "type": "boolean",
       "description": "Declares whether the PROJECT ITSELF (the product being built, not the Rush DevKit harness) ships AI/LLM-powered features. When true, rush-architect and rush-spec apply extra scrutiny appropriate to AI features (prompt injection surface, model fallback behaviour, cost/latency budgets) and detect-stack.sh's ai_sdks field becomes a meaningful signal rather than noise. This never enables or configures the AI used to run the kit's own agents — that is fixed by each skill's frontmatter, not by this file.",

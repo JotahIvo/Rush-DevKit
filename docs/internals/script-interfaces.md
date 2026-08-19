@@ -227,6 +227,15 @@ Executa as fitness functions de `.rush/memory/fitness/*.sh`. Cada arquivo declar
 Varredura por padrões de segredo (chaves de provedores conhecidos, blocos PEM, entropia alta em
 atribuições suspeitas). Respeita `.rush/secret-scan-allow` (uma regex por linha). Exit 1 em hit.
 
+### `memory-prune.sh [--file debt|architecture|all] [--older-than N] [--dry-run] [--restore ID] [--json]`
+
+Arquiva, sem apagar nada, seções resolvidas/fechadas de `.rush/memory/debt.md` (status
+`accepted`/`repaid`, mais antigas que `memory.archive_after_days`) e do resumo por-spec de
+`.rush/memory/architecture.md` (só specs com todo `feature_close` confirmado em `.rush/state.json`),
+movendo cada seção, byte a byte, para `debt.archive.md`/`architecture.archive.md` ao lado do
+arquivo ativo. `--restore <id>` reverte um item. `--dry-run` reporta sem escrever. Reaproveita
+`rushlib.py`'s `parse_headings`/`dump_text_file` — não reimplementa parsing de markdown.
+
 ### `session-start.sh [--json]`
 
 Ritual de início de sessão: feature atual, contagem de tasks por status, perguntas não respondidas

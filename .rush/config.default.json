@@ -39,5 +39,6 @@
   },
   "verification": { "check_timeout_seconds": 600, "stale_spec_commits": 10 },
   "doctor": { "stale_days": 14 },
+  "memory": { "archive_after_days": 90 },
   "ai_features": false
 }

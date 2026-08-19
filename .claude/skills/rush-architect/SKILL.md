@@ -21,8 +21,16 @@ Not yours: what to build (pitch/PRD), implementation detail (plan), or writing c
 
 1. `.rush/config.json` — including `ai_features`, which activates discipline 13.
 2. `.rush/memory/constitution.md` — binding principles; and `.rush/memory/architecture.md` — the
-   real shape of the system today, plus the condensed summary of every other spec's architecture
-   (read it to see what already exists before designing something new).
+   condensed digest of every other spec's architecture, one `## <spec-id> — ...` section each.
+   Read the whole file only the first time in a session, or when you genuinely need the full
+   cross-spec picture (e.g. checking for a naming collision or a pattern already used everywhere).
+   Once you know which spec(s) are actually relevant to this decision — usually because
+   `specs/integration-map.md` or a `consumes` entry names them — prefer
+   `.rush/scripts/lib/rushlib.py parse-headings --file .rush/memory/architecture.md` and read only
+   those sections' `content`; do not re-read the full file's text into context for every decision
+   inside the same run. If a section you expect is missing, it may have been archived by
+   `.rush/scripts/memory-prune.sh` (only happens to fully-closed specs) — check
+   `.rush/memory/architecture.archive.md` before assuming it never existed.
 3. `.rush/memory/decisions/` — existing ADRs. Do not re-decide what was decided; build on it or
    explicitly supersede it.
 4. `specs/<spec-id>/pitch.md` — the problem and the appetite. This runs at the **spec** level,

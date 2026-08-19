@@ -124,6 +124,15 @@ casualmente.
 |---|---|---|---|
 | `doctor.stale_days` | inteiro ≥ 1 | `14` | Lido por `doctor.sh`: dias que um item aberto em `questions.md`/`debt.md` pode ficar parado antes de ser sinalizado como estagnado. |
 
+## `memory`
+
+Bloco opcional — um `config.json` de antes desta chave existir se comporta exatamente como se ela
+estivesse presente com o valor padrão; nada quebra pela ausência.
+
+| Chave | Valores | Padrão | Consequência |
+|---|---|---|---|
+| `memory.archive_after_days` | inteiro ≥ 0 | `90` | Lido por `memory-prune.sh`: idade, em dias desde a data mais recente encontrada na seção, antes de uma entrada resolvida de `debt.md` (status `accepted`/`repaid`) ou a seção de um spec totalmente fechado no resumo de `architecture.md` virar elegível para arquivamento. Uma entrada `open`, ou um spec ainda não fechado, nunca é elegível, não importa a idade. |
+
 ## `ai_features`
 
 Boolean, padrão `false`. Declara se **o produto sendo construído** (não o próprio kit) expõe

@@ -34,7 +34,7 @@ disable-model-invocation: false    # true para skills com efeito colateral pesad
 
 | Modelo | Agentes |
 |---|---|
-| `opus` | `rush-init`, `rush-new`, `rush-architect`, `rush-pitch`, `rush-prd`, `rush-features`, `rush-spec`, `rush-spec-all`, `rush-analyze`, `rush-review` |
+| `opus` | `rush-init`, `rush-new`, `rush-architect`, `rush-pitch`, `rush-prd`, `rush-features`, `rush-spec`, `rush-spec-all`, `rush-spec-runner`, `rush-analyze`, `rush-review` |
 | `sonnet` | `rush-quick`, `rush-implement`, `rush-contracts`, `rush-prototype`, `rush-retro`, `rush-explorer`, `rush-researcher` |
 | `haiku` | `rush` (triagem), `rush-doctor`, `rush-brief`, `rush-verifier` |
 
@@ -117,3 +117,16 @@ Todo agente que executa trabalho iterativo declara explicitamente:
 - Subagent recebe pergunta específica e devolve estrutura fixa — nunca "explore e me conte".
 - `rush-explorer` e `rush-researcher` são read-only (`tools` restrito). `rush-verifier` executa
   comandos mas não edita código-fonte.
+- **Um processo repetido N vezes numa skill batch (não só uma leitura pontual) também é candidato a
+  subagent** — não só "muito código para ler". `rush-spec-runner` é o exemplo: `/rush-spec-all` roda
+  as nove etapas de `/rush-spec` uma vez por feature, e sem isolamento a conversa cresce com o
+  trabalho acumulado de cada feature já processada, não só com o resultado dela. Regra prática: se
+  uma skill via `disable-model-invocation: true` orquestra o mesmo processo completo N vezes numa
+  única invocação, despache-o para um subagent por repetição em vez de rodar inline — o subagent
+  precisa de acesso amplo o bastante para o processo inteiro (`Read`, `Write`, `Edit`, `Bash`,
+  `Glob`, `Grep`, tipicamente), não do conjunto restrito de um explorer/researcher read-only.
+- Um subagent despachado em lote não pode pausar esperando o usuário responder a uma pergunta
+  bloqueante — não há ninguém observando aquela invocação em tempo real. Onde a skill original
+  pararia e perguntaria, o subagent registra o default mais conservador que adotou e sinaliza isso
+  explicitamente no seu resultado estruturado (campo dedicado, não misturado à saída normal), para
+  a skill que o despachou agregar e surfaçar ao usuário no relatório final do lote.

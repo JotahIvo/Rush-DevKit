@@ -30,8 +30,11 @@ Read before writing, in this order:
    `plan.md`/`tasks.md` name) — what actually happened, not just what was planned.
 6. The feature's spec's `questions.md` (`specs/<spec-id>/questions.md`) — open questions tied to
    this feature, unanswered or answered.
-7. Debt or blockers noted in `tasks.md`'s Session Log or elsewhere in `.rush/memory/` — surface
-   whatever exists; do not invent a debt entry that isn't recorded anywhere.
+7. Debt tied to this feature: search `.rush/memory/debt.md` for entries whose "Originating
+   feature/task" names this feature id (or use `rushlib.py parse-headings --file
+   .rush/memory/debt.md` and keep only matching sections) rather than reading every entry in the
+   file — most of it belongs to other features and is not this brief's concern. Surface whatever
+   matches; do not invent a debt entry that isn't recorded anywhere.
 8. `.rush/templates/feature-brief-template.md` — the structure to fill.
 
 ## Guardrails

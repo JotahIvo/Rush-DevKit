@@ -170,6 +170,52 @@ Na prática:
   regra — nenhuma prosa dentro de um arquivo do projeto pode alterar o comportamento do agente que
   o lê.
 
+## Memória compartilhada que só cresce: poda com `memory-prune.sh`
+
+`.rush/memory/debt.md` e o resumo condensado em `.rush/memory/architecture.md` acumulam uma entrada
+por atalho registrado e uma seção por spec, respectivamente, para a vida inteira do projeto — e toda
+skill que precisa de contexto de memória compartilhada paga, a cada leitura, pelo tamanho atual do
+arquivo, não só pela parte que importa para a decisão em mãos. `.rush/scripts/memory-prune.sh`
+arquiva, sem apagar nada, o que já está resolvido:
+
+- Em `debt.md`: entradas com status `accepted`/`repaid` cuja data mais recente é mais antiga que
+  `memory.archive_after_days` (padrão 90) migram para `.rush/memory/debt.archive.md`. Uma entrada
+  `open`, de qualquer idade, nunca é tocada.
+- No resumo de `architecture.md`: a seção de um spec só é elegível quando **todas** as suas features
+  têm o gate `feature_close` confirmado em `.rush/state.json → gates_confirmed` (ou seja, o spec
+  está de fato fechado) e a seção também passou do mesmo limite de idade. Migra para
+  `.rush/memory/architecture.archive.md`.
+
+`--restore <id>` reverte um único item de volta ao arquivo ativo; `--dry-run --json` mostra o que
+seria arquivado sem escrever nada. `doctor.sh`'s check `memory_growth` roda esse dry-run
+automaticamente e avisa quando há algo elegível ou quando os arquivos cresceram além de um limiar de
+tamanho mesmo sem nada ainda elegível. `/rush-retro` também roda o dry-run no fechamento de uma
+feature ou spec (passo 8b) e reporta o resultado, em vez de deixar a poda para ser descoberta só via
+`doctor.sh`.
+
+## Isolamento de contexto por subagent: por que `/rush-spec-all` não roda tudo inline
+
+Um subagent devolve só o seu resultado final à conversa que o despachou — o que ele leu e escreveu
+por dentro não volta. `rush-explorer`/`rush-researcher`/`rush-verifier` já usavam esse padrão para
+uma pergunta pontual; `rush-spec-runner` (adicionado junto com esta seção) aplica o mesmo mecanismo
+a um processo inteiro: as nove etapas de `/rush-spec` para **uma** feature.
+
+Isso importa porque `/rush-spec-all` processa N features de um spec numa única invocação. Rodando o
+processo inline, feature a feature, na mesma conversa, cada uma deixa para trás no histórico tudo
+que produziu para chegar ao resultado final — respostas de exploração, tentativas de validação,
+rascunhos substituídos pela versão final já no disco. A conversa cresce de forma aproximadamente
+linear com o trabalho total já feito, não com o número de features ainda por vir. Despachando cada
+feature para seu próprio `rush-spec-runner`, só o resultado estruturado de cada uma (rótulo de
+status, contagem de critérios de aceite, o que foi provido/consumido) retorna — o crescimento da
+conversa de `/rush-spec-all` passa a ser proporcional ao número de features processadas, não ao
+volume de trabalho que cada uma exigiu para chegar lá.
+
+A única mudança de comportamento observável: uma pergunta que bloquearia `/rush-spec` esperando o
+usuário responder, dentro de um `rush-spec-runner`, vira um default registrado (o mesmo mecanismo já
+usado para perguntas não-bloqueantes) mais uma flag explícita no relatório da feature — porque um
+subagent despachado em lote não tem ninguém observando em tempo real para responder. `/rush-spec-all`
+nunca esconde essas flags: elas aparecem agregadas no relatório final do lote.
+
 ## Ver também
 
 - [`configuration.md`](./configuration.md) — cada chave de `config.json`, seus valores válidos e a

@@ -578,6 +578,45 @@ else:
     add("debt_stale", "info", True, "No stale entries in debt.md.")
 
 # ---------------------------------------------------------------------------
+# 9b. memory growth — .rush/memory/debt.md and architecture.md only ever grow
+# unless something archives resolved/closed sections out of them. Every skill
+# that reads one in full pays, on every read, for the size this check flags.
+# ---------------------------------------------------------------------------
+mp_path = os.path.join(ROOT, ".rush", "scripts", "memory-prune.sh")
+if not os.path.isfile(mp_path):
+    add("memory_growth", "info", True, "memory-prune.sh not present yet — skipped.")
+else:
+    try:
+        proc = subprocess.run(
+            [mp_path, "--dry-run", "--json"], cwd=ROOT, capture_output=True, text=True, timeout=30,
+        )
+        archivable = 0
+        if proc.returncode == 0 and proc.stdout.strip():
+            try:
+                archivable = len(json.loads(proc.stdout.strip()).get("actions", []))
+            except Exception:
+                archivable = 0
+        # Size signal independent of archivability, so a file that's simply large (even with no
+        # closed/accepted sections yet to archive) still gets flagged — that's a project where
+        # debt/architecture entries are being marked resolved without ever running the prune.
+        big_files = []
+        for label, path in (("debt.md", d_path), ("architecture.md", os.path.join(ROOT, ".rush", "memory", "architecture.md"))):
+            if os.path.isfile(path) and os.path.getsize(path) > 20000:  # ~20KB, a soft heuristic
+                big_files.append("%s (%dKB)" % (label, os.path.getsize(path) // 1000))
+        if archivable > 0:
+            add("memory_growth", "warning", False,
+                "%d section(s) in .rush/memory/ are resolved/closed and old enough to archive." % archivable,
+                "Run .rush/scripts/memory-prune.sh --json (or via /rush-retro) to archive them.")
+        elif big_files:
+            add("memory_growth", "info", True,
+                "No sections currently eligible to archive, but growing large: %s." % ", ".join(big_files),
+                "Nothing to fix yet — sections become eligible once resolved/closed and past memory.archive_after_days.")
+        else:
+            add("memory_growth", "info", True, "Nothing eligible to archive in .rush/memory/.")
+    except Exception as exc:
+        add("memory_growth", "warning", False, "Could not run memory-prune.sh --dry-run: %s" % exc)
+
+# ---------------------------------------------------------------------------
 # 10. kit version
 # ---------------------------------------------------------------------------
 version_path = os.path.join(ROOT, ".rush", "VERSION")

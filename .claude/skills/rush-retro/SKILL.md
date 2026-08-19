@@ -121,6 +121,13 @@ Read before acting, in this order:
    `.rush/scripts/validate-artifacts.sh --all --json`. If either exceeds its budget, retire another
    rule (step 4) rather than shipping an over-budget artifact.
 
+8b. **Archive what this retro just closed.** If step 5 accepted or repaid debt items, or this
+   retro is the one confirming a spec's last open `feature_close` gate, run
+   `.rush/scripts/memory-prune.sh --dry-run --json` and report what it would archive — do not run
+   it for real without telling the user first, since it is the mechanism keeping `debt.md` and the
+   architecture digest from growing without bound as the project accumulates specs, and a dry run
+   costs nothing to show.
+
 9. **Sanity-check new eval cases.** Run `.rush/scripts/eval.sh <agent> --case <id> --json` for each
    case you added, to confirm the runner parses and classifies it (deterministic vs `manual`)
    instead of silently failing to load.
