@@ -50,10 +50,9 @@ Roteamento final:
 ## O fluxo L completo
 
 ```
-/rush-pitch  →  /rush-architect  →  /rush-prd  →  /rush-features  →  /rush-spec (por feature)
-                                                                            │
-                                                                            ▼
-                                                                   /rush-contracts (se expõe API)
+/rush-pitch  →  /rush-architect  →  /rush-prd  →  /rush-features  →  /rush-spec (por feature,
+                                                                       gera contratos junto —
+                                                                       ou /rush-spec-all p/ todas)
                                                                             │
                                                               /rush-prototype (opcional)
                                                                             │
@@ -74,30 +73,33 @@ Cada seta é uma fronteira de dono do artefato — nunca uma etapa arbitrária:
 
 1. **`/rush-pitch`** — problema, público, apetite, forma da solução, riscos, fora de escopo.
    Nenhuma tecnologia, endpoint ou tela.
-2. **`/rush-architect`** — como o sistema é estruturado para suportar a feature: 2–3 candidatos com
+2. **`/rush-architect`** — como o sistema inteiro do spec é estruturado: 2–3 candidatos com
    trade-offs, um ADR, fitness functions executáveis. Roda pelas 13 disciplinas (atributos de
    qualidade, boundaries, contratos, dados/migração, segurança, resiliência, performance,
    observabilidade, dependências, integrações externas, custo e — se `ai_features` for `true` —
-   integração de IA).
+   integração de IA). Grava a arquitetura completa em `specs/<spec-id>/architecture.md` e um
+   resumo condensado em `.rush/memory/architecture.md`.
 3. **`/rush-prd`** — consolida pitch + arquitetura em visão, metas, requisitos testáveis, critérios
    de sucesso mensuráveis e as user journeys (que depois viram testes de jornada).
 4. **`/rush-features`** — divide o PRD em unidades de feature e produz `specs/integration-map.md`:
    o grafo `provides`/`consumes`, os contratos compartilhados com dono único, e as journeys — o
    mecanismo que impede uma feature de existir isolada. Ver [`integration.md`](./integration.md).
-5. **`/rush-spec`** (uma vez por feature, na ordem topológica que o integration map devolve) —
-   `spec.md`, `plan.md`, `tasks.md`, `done-contract.md`.
-6. **`/rush-contracts`** — quando a feature expõe uma interface: OpenAPI/JSON Schema/AsyncAPI,
-   congelados antes da implementação.
-7. **`/rush-prototype`** (opcional, invocação explícita) — um HTML estático e descartável do fluxo,
+5. **`/rush-spec`** (uma vez por feature, na ordem topológica que o integration map devolve, ou
+   `/rush-spec-all <spec-id>` para rodar o processo em todas de uma vez) — `spec.md`, `plan.md`,
+   `tasks.md`, `done-contract.md` (com os critérios de aceite embutidos); quando a feature expõe
+   uma interface, os contratos (OpenAPI/JSON Schema/AsyncAPI) são gerados no mesmo processo,
+   congelados antes da implementação. `/rush-contracts` continua existindo, mas só para
+   re-sincronizar um contrato depois de mudado, ou gerar um que ficou pendente.
+6. **`/rush-prototype`** (opcional, invocação explícita) — um HTML estático e descartável do fluxo,
    nunca promovido a código real.
-8. **`/rush-analyze`** — gate de consistência go/no-go entre spec, plan, contratos, constitution e
+7. **`/rush-analyze`** — gate de consistência go/no-go entre spec, plan, contratos, constitution e
    integration map. Veredito sempre binário.
-9. **`/rush-implement`** — código, task por task, cada uma verificada pelo `rush-verifier`.
-10. **`/rush-review`** — revisão assistida e interativa antes do gate `feature_close`.
-11. **`/rush-retro`** (opcional) — falhas reais viram mecanismo permanente (eval case, fitness
+8. **`/rush-implement`** — código, task por task, cada uma verificada pelo `rush-verifier`.
+9. **`/rush-review`** — revisão assistida e interativa antes do gate `feature_close`.
+10. **`/rush-retro`** (opcional) — falhas reais viram mecanismo permanente (eval case, fitness
     function) ou regra registrada em `lessons.md`.
 
-`/rush-new` (projeto novo) executa essencialmente os passos 1–8 em sequência automaticamente, com
+`/rush-new` (projeto novo) executa essencialmente os passos 1–7 em sequência automaticamente, com
 apenas dois pontos de aprovação humana no meio (a escolha de stack, e a fila de specs terminada) em
 vez de um gate por feature.
 

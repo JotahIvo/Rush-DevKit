@@ -67,9 +67,10 @@ Duas regras aplicam isso em pontos diferentes do processo:
 - `/rush-features`, ao identificar uma interface consumida por 2+ features, é instruído a nunca
   deixar a propriedade implícita — um contrato compartilhado sem dono declarado é exatamente o
   risco que `duplicate_provider` existe para prevenir.
-- `/rush-contracts`, ao gerar os arquivos de contrato de uma feature, nunca duplica uma interface
-  que outra feature (ou `shared-contracts/`) já define — referencia o caminho existente e para. Se
-  o mapa ainda não declara dono para uma interface que está prestes a colocar em
+- `/rush-spec`, ao gerar os arquivos de contrato de uma feature durante seu próprio processo (ou
+  `/rush-contracts`, ao re-sincronizar um contrato já congelado), nunca duplica uma interface que
+  outra feature (ou `shared-contracts/`) já define — referencia o caminho existente e para. Se o
+  mapa ainda não declara dono para uma interface que está prestes a colocar em
   `shared-contracts/`, isso é reportado como lacuna do mapa, não decidido ali.
 - `.rush/scripts/validate-contracts.sh` reforça isso mecanicamente: todo contrato sob
   `specs/shared-contracts/` precisa ter, no integration map (`shared_contracts[]`, casado por
@@ -101,4 +102,5 @@ Isso é o que fecha o nível 3 da Definition of Done — veja
 - [`flow.md`](./flow.md) — onde `/rush-features` se encaixa no fluxo L completo.
 - [`definition-of-done.md`](./definition-of-done.md) — os quatro níveis de "pronto", incluindo o
   de journey.
-- [`agents.md`](./agents.md) — `/rush-features`, `/rush-contracts` e `/rush-analyze` em detalhe.
+- [`agents.md`](./agents.md) — `/rush-features`, `/rush-spec`, `/rush-contracts` e `/rush-analyze`
+  em detalhe.

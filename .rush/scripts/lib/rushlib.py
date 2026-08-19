@@ -281,7 +281,7 @@ def count_content_lines(text: str) -> int:
 # Matches .rush/templates/tasks-template.md exactly:
 #
 #   ### T001 — Set up DB schema
-#   - status: `pending`
+#   - [ ] status: `pending`
 #   - verify: `npm run test:db`
 #
 # The id/title separator is an em dash in the template but a plain
@@ -289,8 +289,18 @@ def count_content_lines(text: str) -> int:
 # other than the four known statuses is left as "pending" rather than
 # rejected outright - a typo'd status shouldn't make the whole file
 # unparseable.
+#
+# The leading "[ ]"/"[x]" checkbox is the visible completion mark a human
+# scans tasks.md for (this is what replaced the separate progress.md
+# diary — see tasks-template.md's "Session Log" section). It is optional
+# on read (files written before this existed, or hand-edited ones, have a
+# bare "- status: `pending`" with no checkbox) but set_task_status() always
+# writes it going forward, so a file self-heals to the checkbox format the
+# next time any status on it changes.
 _TASK_HEADING_RE = re.compile(r"^###\s+(\S+)\s*[—–-]\s*(.*?)\s*$")
-_STATUS_LINE_RE = re.compile(r"^(\s*)-\s*status:\s*`?([A-Za-z_]+)`?\s*$", re.IGNORECASE)
+_STATUS_LINE_RE = re.compile(
+    r"^(\s*)-\s*(?:\[([ xX])\]\s*)?status:\s*`?([A-Za-z_]+)`?\s*$", re.IGNORECASE
+)
 _VERIFY_LINE_RE = re.compile(r"^\s*-\s*verify:\s*`([^`]*)`\s*$", re.IGNORECASE)
 _ANY_HEADING_RE = re.compile(r"^#{1,6}\s+")
 
@@ -330,7 +340,7 @@ def parse_tasks(text: str) -> List[Dict[str, Any]]:
         while j < n and not _TASK_HEADING_RE.match(lines[j]) and not _ANY_HEADING_RE.match(lines[j]):
             sm = _STATUS_LINE_RE.match(lines[j])
             if sm:
-                candidate = sm.group(2).lower()
+                candidate = sm.group(3).lower()
                 if candidate in STATUS_CHOICES:
                     status = candidate
             vm = _VERIFY_LINE_RE.match(lines[j])
@@ -374,13 +384,14 @@ def set_task_status(text: str, task_id: str, status: str) -> Tuple[str, bool]:
                     status_idx = j
                     break
                 j += 1
+            checkbox = "x" if status == "done" else " "
             if status_idx is not None:
                 b2, e2 = _split_line_ending(lines[status_idx])
                 indent = _STATUS_LINE_RE.match(b2).group(1)
-                lines[status_idx] = "%s- status: `%s`%s" % (indent, status, e2 or "\n")
+                lines[status_idx] = "%s- [%s] status: `%s`%s" % (indent, checkbox, status, e2 or "\n")
             else:
                 _, e1 = _split_line_ending(lines[i])
-                lines.insert(i + 1, "- status: `%s`%s" % (status, e1 or "\n"))
+                lines.insert(i + 1, "- [%s] status: `%s`%s" % (checkbox, status, e1 or "\n"))
             break
         i += 1
     return "".join(lines), found

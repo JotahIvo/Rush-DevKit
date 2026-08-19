@@ -1,6 +1,6 @@
 # Skills e subagents
 
-O Rush DevKit é composto por **17 skills** (comandos `/rush-*`, cada um um `SKILL.md` sob
+O Rush DevKit é composto por **18 skills** (comandos `/rush-*`, cada um um `SKILL.md` sob
 `.claude/skills/<nome>/`) e **3 subagents** (`.claude/agents/*.md`, despachados pelas skills, nunca
 chamados diretamente pelo usuário). O nome do diretório é o nome do comando:
 `.claude/skills/rush-spec/SKILL.md` → `/rush-spec`.
@@ -31,7 +31,7 @@ Duas colunas merecem nota:
 | Skill | O que faz | Trigger | Modelo | O que NÃO faz |
 |---|---|---|---|---|
 | `/rush-pitch` | Converte uma ideia crua em `pitch.md`: problema, público, apetite, forma da solução, riscos, fora de escopo — via conversa curta e provocativa. | auto | opus | Não nomeia tecnologia, endpoint, tela ou schema; não estima esforço em horas/pontos; no máximo 3 perguntas por rodada. |
-| `/rush-architect` | Desenha a arquitetura de uma feature nas 13 disciplinas (atributos de qualidade, boundaries, contratos, segurança, resiliência, performance, observabilidade, IA quando aplicável, etc.), produz 2–3 candidatos, recomenda um, grava ADR e escreve fitness functions executáveis. | auto | opus | Não decide o quê construir (isso é pitch/PRD); não escreve passo a passo de implementação (isso é o plan); nunca afirma uma propriedade de performance/segurança sem expressá-la como check. |
+| `/rush-architect` | Desenha a arquitetura completa do sistema de um spec nas 13 disciplinas (atributos de qualidade, boundaries, contratos, segurança, resiliência, performance, observabilidade, IA quando aplicável, etc.), produz 2–3 candidatos, recomenda um, grava ADR e escreve fitness functions executáveis. Grava a versão completa em `specs/<spec-id>/architecture.md` e um resumo condensado em `.rush/memory/architecture.md`. | auto | opus | Não decide o quê construir (isso é pitch/PRD); não escreve passo a passo de implementação (isso é o plan); nunca afirma uma propriedade de performance/segurança sem expressá-la como check; nunca copia o documento completo para dentro do resumo da memória. |
 
 ## Especificação
 
@@ -39,8 +39,9 @@ Duas colunas merecem nota:
 |---|---|---|---|---|
 | `/rush-prd` | Consolida pitch + arquitetura em `prd.md`: visão, metas, requisitos testáveis, critérios de sucesso mensuráveis e tecnologicamente agnósticos, e as user journeys que viram testes de jornada. | auto | opus | Não redecide tecnologia/trade-offs estruturais (já decididos pela arquitetura); não faz o breakdown em features (isso é `/rush-features`); rejeita critério de sucesso fraseado como interno de sistema (latência, throughput). |
 | `/rush-features` | Divide um PRD em unidades de feature entregáveis e produz/atualiza `specs/integration-map.md`: o grafo de provides/consumes, as journeys cross-feature e o teste que prova cada uma — o mecanismo que torna "feature isolada que não se conecta" estruturalmente impossível. | auto | opus | Não escreve `spec.md`/`plan.md` de nenhuma feature (isso é `/rush-spec`, uma por vez); não reabre decisões de escopo já fechadas pelo PRD. |
-| `/rush-spec` | Escreve `spec.md` (comportamento observável), `plan.md` (abordagem), `tasks.md` (unidades ordenadas) e `done-contract.md` (definition of done executável) de uma feature. | auto | opus | Não toma decisão de produto (pitch/PRD) nem estrutural (arquitetura); não escreve código; nunca inventa uma interface que o integration map atribui a outra feature. |
-| `/rush-contracts` | Gera os contratos verificáveis (OpenAPI, JSON Schema, AsyncAPI) que a seção Interfaces de `spec.md` expõe, congelados como fonte única de verdade antes da implementação começar. | auto | sonnet | Não decide o que a interface faz (isso é o spec); não implementa; não redesenha uma interface que outra feature já possui — referencia, nunca duplica. |
+| `/rush-spec` | Escreve `spec.md` (comportamento observável), `plan.md` (abordagem), `tasks.md` (unidades ordenadas) e `done-contract.md` (definition of done executável, com os critérios de aceite embutidos) de uma feature; quando a feature provê uma interface, gera os contratos verificáveis (OpenAPI, JSON Schema, AsyncAPI) correspondentes no mesmo processo. | auto | opus | Não toma decisão de produto (pitch/PRD) nem estrutural (arquitetura); não escreve código; nunca inventa uma interface que o integration map atribui a outra feature; nunca duplica um contrato que outra feature já possui. |
+| `/rush-spec-all` | Roda o processo completo de `/rush-spec` para todas as features de um spec, em ordem de dependência (provedor antes de consumidor), sem exigir uma invocação manual por feature. | manual | opus | Não relaxa nenhum guardrail de `/rush-spec`; uma feature que falha ou termina com perguntas em aberto não impede as demais de serem tentadas. |
+| `/rush-contracts` | Re-sincroniza um contrato (OpenAPI, JSON Schema, AsyncAPI) depois que a interface correspondente muda pós-congelamento, ou gera um contrato que `/rush-spec` deixou pendente. | auto | sonnet | Não decide o que a interface faz (isso é o spec); não implementa; não redesenha uma interface que outra feature já possui — referencia, nunca duplica. |
 | `/rush-prototype` | Gera **um** mockup HTML+CSS estático e descartável do fluxo de uma feature, com dados mockados exatamente na forma dos contratos, para visualizar antes de codar. | manual | sonnet | Não é polimento visual nem interatividade real; nunca deve ser importado ou promovido a código de produção — isso é dito explicitamente no relatório e embutido como banner visível no arquivo. |
 | `/rush-analyze` | Roda o gate go/no-go de consistência entre spec, plan, contratos, constitution e integration map de uma feature (ou do projeto inteiro) antes da implementação começar. | auto | opus | Nunca corrige — só reporta, com o arquivo, a regra violada e quem deve corrigir; o veredito é sempre binário (GO/NO-GO), nunca "GO com ressalvas". |
 
@@ -56,7 +57,7 @@ Duas colunas merecem nota:
 | Skill | O que faz | Trigger | Modelo | O que NÃO faz |
 |---|---|---|---|---|
 | `/rush-review` | Caminha um humano pelo código de uma feature finalizada, arquivo por arquivo, conectando cada mudança ao spec e à arquitetura, e coletando achados interativamente — o objetivo é compreensão, não aprovação rápida. | auto | opus | Não corrige o que encontra (isso volta para `/rush-implement`); não confirma o gate humano em nome do humano; nunca despeja a revisão inteira numa mensagem só. |
-| `/rush-retro` | Fecha o loop de aprendizado: cada falha real de uma feature fechada vira um mecanismo determinístico (eval case, fitness function) ou, só quando não há como automatizar, uma regra em `lessons.md`/`CLAUDE.md`. Também audita `debt.md` e `questions.md`. | manual | sonnet | Não reabre nem reimplementa a feature; nunca escreve mudança na constitution sem confirmação explícita do diff exato. |
+| `/rush-retro` | Fecha o loop de aprendizado: cada falha real de uma feature fechada vira um mecanismo determinístico (eval case, fitness function) ou, só quando não há como automatizar, uma regra em `lessons.md`/`CLAUDE.md`. Também audita `debt.md` e o `questions.md` de cada spec. | manual | sonnet | Não reabre nem reimplementa a feature; nunca escreve mudança na constitution sem confirmação explícita do diff exato. |
 
 ## Suporte
 

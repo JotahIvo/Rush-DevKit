@@ -1,8 +1,10 @@
 <!-- Budget: 150 lines. Density over completeness. -->
-<!-- SPEC artifact: observable technical WHAT — interfaces, data, states, edge cases,
-     acceptance criteria. Never internal implementation detail (class layout, variable names,
-     private helpers — that's plan.md) and never agent process ("run the test suite", "commit
-     at the end" — that's harness config in .rush/config.json). -->
+<!-- SPEC artifact: observable technical WHAT — interfaces, data, states, edge cases. Never
+     internal implementation detail (class layout, variable names, private helpers — that's
+     plan.md), never agent process ("run the test suite", "commit at the end" — that's harness
+     config in .rush/config.json), and never acceptance criteria or the Definition of Done —
+     those live in done-contract.md now, merged with the checks that enforce them, so a criterion
+     is never separated from what proves it. -->
 <!-- Filled by /rush-spec. Location: specs/{{FEATURE_ID}}/spec.md -->
 
 # Spec: {{FEATURE_TITLE}}
@@ -43,14 +45,6 @@
      without this is half a spec. -->
 - {{EDGE_CASE_1}} → {{EXPECTED_BEHAVIOUR_1}}
 - {{EDGE_CASE_2}} → {{EXPECTED_BEHAVIOUR_2}}
-
-## Acceptance Criteria
-
-<!-- Numbered, each testable, written as the test you would run. Every criterion must map to a
-     check or a human gate in done-contract.md — a criterion mapped to neither will not be
-     enforced. -->
-1. {{ACCEPTANCE_CRITERION_1}}
-2. {{ACCEPTANCE_CRITERION_2}}
 
 ## Out of Scope
 

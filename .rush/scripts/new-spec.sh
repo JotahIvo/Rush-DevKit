@@ -9,6 +9,10 @@
 # FEATURES underneath it, each its own specs/<spec-id>/<feature-id>/ made
 # by new-feature.sh — never a sibling of the spec.
 #
+# Also seeds specs/NNN-<slug>/questions.md (empty, from questions-template.md) — questions live
+# per-spec now, not in one shared .rush/memory/questions.md, so every spec needs its own from the
+# start.
+#
 # Usage: new-spec.sh <slug> [--title "..."] [--json]
 #
 # Exit 0 ok (created or already existed), 2 usage/internal error.
@@ -21,11 +25,11 @@ usage() {
 Usage: new-spec.sh <slug> [--title "..."] [--json]
 
 Creates specs/NNN-<slug>/ (NNN is the next sequential 3-digit id at the
-top level of specs/), copying pitch.md and prd.md from
-.rush/templates/{pitch,prd}-template.md (only the ones that exist there
-are copied), with {{FEATURE_ID}}, {{FEATURE_TITLE}} and {{DATE}}
-substituted. Registers the spec in .rush/state.json (current_spec,
-specs[]).
+top level of specs/), copying pitch.md, prd.md and questions.md from
+.rush/templates/{pitch,prd,questions}-template.md (only the ones that
+exist there are copied), with {{FEATURE_ID}}, {{FEATURE_TITLE}} and
+{{DATE}} substituted. Registers the spec in .rush/state.json
+(current_spec, specs[]).
 
 Deliverable work does NOT go here directly: once the spec exists, split
 it into features with new-feature.sh <spec-id> <feature-slug>, which
@@ -150,6 +154,7 @@ if not already_existed:
     template_map = [
         ("pitch-template.md", "pitch.md"),
         ("prd-template.md", "prd.md"),
+        ("questions-template.md", "questions.md"),
     ]
     for template_name, dest_name in template_map:
         src = os.path.join(templates_dir, template_name)

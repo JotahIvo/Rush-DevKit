@@ -21,8 +21,8 @@ Read before acting, in this order:
 
 1. `.rush/config.json` — language, autonomy, gates.
 2. `.rush/memory/constitution.md` — binding principles the pitch must not contradict.
-3. `.rush/memory/questions.md` and `.rush/memory/decisions.md` (if present) — prior context that
-   avoids re-asking what is already known.
+3. `.rush/memory/decisions.md` (if present) — prior context that avoids re-asking what is already
+   known. If this spec already exists (a re-run), also read its own `questions.md`.
 4. Any existing `specs/<id>/pitch.md` — this command is re-runnable; read before overwriting.
 
 ## Guardrails
@@ -38,8 +38,8 @@ Read before acting, in this order:
 6. Stay inside your layer of the WHAT/HOW boundary. The pitch owns product intent, not structure:
    no technology choice, no endpoint, no screen, no schema. Those belong to architecture and spec —
    naming them here is a finding to flag, not something to write down.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. **Maximum 3 questions per round.** Prioritise: the real problem > who actually has it > appetite
    > everything else. Always give the user something concrete to react to, never an open prompt.
 9. The pitch must state an explicit **appetite** (how much time/effort this deserves) and an

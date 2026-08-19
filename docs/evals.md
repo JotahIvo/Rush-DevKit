@@ -24,7 +24,7 @@ pass/fail/manual. Formato de um caso:
     { "type": "script", "run": "<comando>", "expect": "exit 0" },
     { "type": "file_exists", "path": "specs/007-checkout/spec.md" },
     { "type": "budget", "file": "specs/007-checkout/spec.md", "max_lines": 150 },
-    { "type": "contains", "file": "specs/007-checkout/spec.md", "text": "## Acceptance Criteria" },
+    { "type": "contains", "file": "specs/007-checkout/done-contract.md", "text": "## Acceptance Criteria" },
     { "type": "manual", "rubric": "..." }
   ]
 }

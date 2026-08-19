@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # session-start.sh - the session ritual: current feature, task counts,
 # unanswered questions, open debt, working tree cleanliness, recent
-# commits, the last progress entry, and a suggested baseline test
+# commits, the last session-log entry, and a suggested baseline test
 # command. Read-only: never writes anything.
 #
 # Usage: session-start.sh [--json]
@@ -12,7 +12,10 @@
 # Claude Code SessionStart hook) reads current_spec, current_feature,
 # tasks, open_questions, open_debt, dirty_tree, last_commits,
 # last_progress_entry and baseline_test_command from this script's
-# --json output verbatim.
+# --json output verbatim. last_progress_entry keeps its old field name
+# for that reason even though its source changed: it now comes from the
+# current feature's tasks.md "## Session Log" section, not a separate
+# progress.md (which no longer exists).
 set -euo pipefail
 
 . "$(dirname "$0")/lib/common.sh"
@@ -22,10 +25,10 @@ usage() {
 Usage: session-start.sh [--json]
 
 Prints the session-start ritual: current feature, task counts by
-status, unanswered questions (.rush/memory/questions.md), open debt
-(.rush/memory/debt.md), whether the working tree is dirty, the last 5
-commits, the newest progress.md entry, and a suggested baseline test
-command (from detect-stack.sh). Read-only.
+status, unanswered questions (specs/<current-spec>/questions.md), open
+debt (.rush/memory/debt.md), whether the working tree is dirty, the
+last 5 commits, the newest entry in tasks.md's Session Log, and a
+suggested baseline test command (from detect-stack.sh). Read-only.
 
   --json       Print a single JSON object on stdout, nothing else.
   -h, --help   Show this help.
@@ -128,16 +131,24 @@ def open_entries(path, status_field_name, open_statuses):
     return out
 
 
-open_questions = open_entries(os.path.join(root, ".rush", "memory", "questions.md"), "Question", {"open"})
+# questions.md lives per spec now (specs/<spec-id>/questions.md), not in one
+# shared .rush/memory/questions.md, so it only exists once a spec is current.
+open_questions = []
+if current_spec:
+    open_questions = open_entries(
+        os.path.join(root, "specs", current_spec, "questions.md"), "Question", {"open"}
+    )
 open_debt = open_entries(os.path.join(root, ".rush", "memory", "debt.md"), "Shortcut taken", {"open"})
 
-# --- last progress entry: newest entry is topmost -----------------------
+# --- last session-log entry: newest entry is topmost, "#### <date> — <title>" ---
+# There is no separate progress.md any more (folded into tasks.md's Session Log,
+# level-4 on purpose so it can never be mistaken for a level-3 task heading).
 last_progress_entry = None
 if feature_dir:
-    progress_text = read(os.path.join(root, feature_dir, "progress.md"))
-    if progress_text is not None:
-        for h in rushlib.parse_headings(progress_text):
-            if h["level"] == 2:
+    tasks_text_for_log = read(os.path.join(root, feature_dir, "tasks.md"))
+    if tasks_text_for_log is not None:
+        for h in rushlib.parse_headings(tasks_text_for_log):
+            if h["level"] == 4:
                 last_progress_entry = h["title"]
                 break
 
@@ -207,7 +218,7 @@ if data["last_commits"]:
         print("  %s" % c)
 else:
     print("  (none)")
-print("last progress entry: %s" % show(data["last_progress_entry"]))
+print("last session log entry: %s" % show(data["last_progress_entry"]))
 print("baseline test command: %s" % show(data["baseline_test_command"]))
 PYEOF
 fi

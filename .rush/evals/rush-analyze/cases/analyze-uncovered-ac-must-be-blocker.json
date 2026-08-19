@@ -1,15 +1,15 @@
 {
   "id": "analyze-uncovered-ac-must-be-blocker",
   "agent": "rush-analyze",
-  "description": "Process step 3: 'Uncovered acceptance criteria: any acceptance criterion not traceable to a check or a human gate in done-contract.md's JSON block' is a CRITICAL finding. Guards against rush-analyze missing a done-contract.md that silently drops an acceptance criterion.",
+  "description": "Process step 3: 'Uncovered acceptance criteria: any acceptance criterion not traceable to a check or a human gate in done-contract.md's own Coverage table' is a CRITICAL finding. Guards against rush-analyze missing a done-contract.md that silently drops an acceptance criterion.",
   "given": {
     "cwd": ".rush/evals/fixtures/ac-coverage-gap",
-    "scenario": "Run /rush-analyze against the fixture feature whose spec.md declares 3 acceptance criteria but whose done-contract.md's coverage table only traces criteria 1 and 2 — criterion 3 ('unauthenticated caller returns 401') maps to nothing."
+    "scenario": "Run /rush-analyze against the fixture feature whose done-contract.md declares 3 acceptance criteria but whose own coverage table only traces criteria 1 and 2 — criterion 3 ('unauthenticated caller returns 401') maps to nothing."
   },
   "graders": [
     { "type": "file_exists", "path": "spec.md" },
     { "type": "file_exists", "path": "done-contract.md" },
-    { "type": "script", "run": "python3 check_ac_coverage.py spec.md done-contract.md", "expect": "exit 1" },
-    { "type": "manual", "rubric": "PASS only if the verdict is NO-GO with a numbered CRITICAL blocker (or, at minimum, an explicitly recorded WARNING if the reviewer judges it non-blocking on its own — but never silence) that specifically names spec.md's acceptance criterion 3 as untraceable to any check or human_gate in done-contract.md. FAIL if the verdict is GO; FAIL if NO-GO is reached for other reasons but this specific gap is never mentioned anywhere in the report." }
+    { "type": "script", "run": "python3 check_ac_coverage.py done-contract.md", "expect": "exit 1" },
+    { "type": "manual", "rubric": "PASS only if the verdict is NO-GO with a numbered CRITICAL blocker (or, at minimum, an explicitly recorded WARNING if the reviewer judges it non-blocking on its own — but never silence) that specifically names done-contract.md's acceptance criterion 3 as untraceable to any check or human_gate in its own Coverage table. FAIL if the verdict is GO; FAIL if NO-GO is reached for other reasons but this specific gap is never mentioned anywhere in the report." }
   ]
 }

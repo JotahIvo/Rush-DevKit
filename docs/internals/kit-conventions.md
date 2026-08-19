@@ -1,6 +1,6 @@
 # Convenções do kit (para quem escreve ou edita agentes)
 
-Regras de autoria dos prompts. Elas existem para que 17 skills escritas em momentos diferentes se
+Regras de autoria dos prompts. Elas existem para que 18 skills escritas em momentos diferentes se
 comportem como um sistema só. Toda skill nova ou editada deve passar por `.rush/scripts/doctor.sh`
 e pelos evals do agente correspondente.
 
@@ -34,7 +34,7 @@ disable-model-invocation: false    # true para skills com efeito colateral pesad
 
 | Modelo | Agentes |
 |---|---|
-| `opus` | `rush-init`, `rush-new`, `rush-architect`, `rush-pitch`, `rush-prd`, `rush-features`, `rush-spec`, `rush-analyze`, `rush-review` |
+| `opus` | `rush-init`, `rush-new`, `rush-architect`, `rush-pitch`, `rush-prd`, `rush-features`, `rush-spec`, `rush-spec-all`, `rush-analyze`, `rush-review` |
 | `sonnet` | `rush-quick`, `rush-implement`, `rush-contracts`, `rush-prototype`, `rush-retro`, `rush-explorer`, `rush-researcher` |
 | `haiku` | `rush` (triagem), `rush-doctor`, `rush-brief`, `rush-verifier` |
 
@@ -70,8 +70,8 @@ Copiar literalmente o bloco abaixo em `## Guardrails` (ajustando o item 6 quando
 5. Never mark work as done yourself. Only `rush-verifier` promotes status.
 6. Stay inside your layer of the WHAT/HOW boundary (see `docs/internals/kit-conventions.md`).
    Agent process (running tests, committing) is harness configuration — it never belongs in a spec.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 ```
 
 ## Fronteira O QUE / COMO (resumo operacional)

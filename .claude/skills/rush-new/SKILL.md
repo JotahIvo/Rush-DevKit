@@ -37,8 +37,8 @@ If the repository already contains a real codebase, stop and route to `/rush-ini
 5. Never mark work as done yourself. Only `rush-verifier` promotes status.
 6. Stay inside your layer per artifact: the discovery output is product, the stack decision is
    architecture, the specs are behaviour. Do not blur them because it is all one session.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. **Never hand-write boilerplate.** Scaffolding uses the ecosystem's official generator from the
    preset's `scaffold` block (`nest new`, `create-next-app`, …). A hand-rolled project skeleton is
    subtly wrong in ways nobody notices until it hurts.
@@ -72,7 +72,8 @@ every verification that follows.
 against the schema, commands taken from the preset and *proven* to run), `.rush/memory/`:
 `constitution.md` (minimal, per guardrail 10), `product.md`, `architecture.md` (here it is the
 *intended* architecture — the as-built passes during implementation will correct it toward
-reality), plus empty `questions.md`, `debt.md`, `lessons.md`.
+reality), plus empty `debt.md`, `lessons.md`. There is no project-level `questions.md` any more —
+`new-spec.sh` seeds one per spec once the first spec is created.
 
 **5. MVP PRD** — run `/rush-prd`'s process within the cut from step 1: vision, goals, testable
 requirements, measurable technology-agnostic success criteria, and the **user journeys**, which

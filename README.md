@@ -75,7 +75,8 @@ Verifique a instalação com `.rush/scripts/doctor.sh`.
                          │
                          └── L ──► /rush-pitch ──► /rush-architect ──► /rush-prd
                                         │
-                                   /rush-features ──► /rush-spec ──► /rush-contracts
+                                   /rush-features ──► /rush-spec (gera contratos)
+                                        │              [ou /rush-spec-all p/ todas as features]
                                         │                                  │
                                         │                        /rush-prototype (opcional)
                                         │                                  │
@@ -92,8 +93,9 @@ Verifique a instalação com `.rush/scripts/doctor.sh`.
 **Descoberta** — `rush-pitch` (problema, apetite, corte de escopo) ·
 `rush-architect` (13 disciplinas, candidatos com trade-offs, ADR e **fitness functions**)
 
-**Especificação** — `rush-prd` · `rush-features` (integration map) · `rush-spec` ·
-`rush-contracts` · `rush-prototype`
+**Especificação** — `rush-prd` · `rush-features` (integration map) · `rush-spec` (gera contratos
+junto) · `rush-spec-all` (roda `rush-spec` para todas as features de um spec) · `rush-contracts`
+(re-sincroniza um contrato depois de congelado) · `rush-prototype`
 
 **Implementação** — `rush-analyze` (gate go/no-go) · `rush-implement` (uma task por vez, com
 orçamento de tentativas e escalação) · `rush-quick` (caminho M)
@@ -121,7 +123,9 @@ Referência completa em [`docs/agents.md`](docs/agents.md).
   [`docs/internals/script-interfaces.md`](docs/internals/script-interfaces.md).
 - **Memória** — `constitution.md` (nasce mínima, cresce por *ratchet*), `product.md`,
   `architecture.md`, `decisions/` (ADRs), `lessons.md` (falha → regra criada),
-  `questions.md` (Q&A assíncrono não-bloqueante), `debt.md` (débito registrado, não perdido).
+  `debt.md` (débito registrado, não perdido). Cada spec tem seu próprio
+  `specs/<spec-id>/questions.md` (Q&A assíncrono não-bloqueante) e `architecture.md` (arquitetura
+  completa daquele spec — `.rush/memory/architecture.md` guarda só o resumo condensado de cada um).
 
 ## Modelos recomendados
 
@@ -129,7 +133,7 @@ O modelo é definido no frontmatter de cada skill — fonte única, sem duplicar
 
 | Modelo | Agentes | Racional |
 |---|---|---|
-| `opus` | init, new, architect, pitch, prd, features, spec, analyze, review | Julgamento com alta alavancagem e saída pequena |
+| `opus` | init, new, architect, pitch, prd, features, spec, spec-all, analyze, review | Julgamento com alta alavancagem e saída pequena |
 | `sonnet` | implement, quick, contracts, prototype, retro, explorer, researcher | Volume de trabalho com verificação determinística atrás |
 | `haiku` | rush (triagem), doctor, brief, verifier | Executam scripts e compactam resultados |
 
@@ -142,7 +146,7 @@ Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` 
 |---|---|
 | [Getting started](docs/getting-started.md) | Instalação e um passo a passo completo de uma feature |
 | [Fluxo](docs/flow.md) | Triagem S/M/L, gates e a fronteira O QUE / COMO |
-| [Agentes](docs/agents.md) | Referência dos 17 skills e 3 subagents |
+| [Agentes](docs/agents.md) | Referência dos 18 skills e 3 subagents |
 | [Harness](docs/harness.md) | Config, hooks, loop do agente, memória |
 | [Definition of Done](docs/definition-of-done.md) | A cadeia de "pronto" em 4 níveis |
 | [Integração](docs/integration.md) | Integration map, shared contracts, journey tests |

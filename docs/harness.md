@@ -25,8 +25,8 @@ não o que parece razoável que fizessem.
 
 Chama `.rush/scripts/session-start.sh --json` e injeta um bloco de contexto
 (`additionalContext`) com: feature atual, contagem de tasks por status, número de perguntas em
-aberto, débitos abertos, se a working tree está suja, o commit mais recente, a última entrada de
-`progress.md` e o comando de teste baseline sugerido. Degrada **silenciosamente** (sem saída, exit
+aberto, débitos abertos, se a working tree está suja, o commit mais recente, a última entrada do
+Session Log de `tasks.md` e o comando de teste baseline sugerido. Degrada **silenciosamente** (sem saída, exit
 0) se o projeto ainda não tem `.rush/state.json` — ou seja, antes do primeiro `/rush-init`/`/rush-new`,
 o hook simplesmente não faz nada.
 
@@ -114,21 +114,25 @@ automaticamente); `rush-review` é explícito sobre isso no fechamento de cada s
 
 ## Memória do projeto: `questions.md`, `debt.md`, `lessons.md`
 
-Três arquivos append-only sob `.rush/memory/`, cada um com um template próprio
-(`.rush/templates/questions-template.md`, `debt-template.md`) que define a estrutura exigida:
+`debt.md` e `lessons.md` são append-only sob `.rush/memory/`, com template próprio
+(`debt-template.md`). `questions.md` é append-only também, mas não vive mais em `.rush/memory/` —
+cada spec tem o seu próprio, em `specs/<spec-id>/questions.md`, seedado vazio por `new-spec.sh` a
+partir de `.rush/templates/questions-template.md`:
 
-- **`questions.md`** — toda pergunta não-bloqueante que um agente decide não interromper o usuário
-  para fazer vira uma entrada aqui com a suposição adotada (status `open`/`answered`); nenhuma
-  entrada é apagada, mesmo depois de respondida — a suposição pode já ter sido usada num artefato
-  gerado, e o histórico explica por quê.
+- **`questions.md`** (um por spec) — toda pergunta não-bloqueante que um agente decide não
+  interromper o usuário para fazer vira uma entrada no `questions.md` do spec relevante, com a
+  suposição adotada (status `open`/`answered`); nenhuma entrada é apagada, mesmo depois de
+  respondida — a suposição pode já ter sido usada num artefato gerado, e o histórico explica por
+  quê. `doctor.sh` varre o `questions.md` de todo spec ao checar itens parados há mais de
+  `doctor.stale_days` dias.
 - **`debt.md`** — todo atalho deliberado tomado sob pressão de tempo vira uma entrada com o quê, por
   quê, custo estimado de pagamento e a feature/task de origem (status `open`/`accepted`/`repaid`).
   Um atalho não registrado, descoberto depois numa revisão, é tratado como falha de processo, não
   preferência de estilo.
 - **`lessons.md`** — onde `/rush-retro` registra toda regra ou mecanismo novo, sempre citando a
   falha concreta que o motivou. Nenhuma regra "porque parece boa prática" é aceita; se não dá para
-  apontar o commit, entrada de `progress.md`, check que falhou ou achado de revisão que a
-  justifica, ela não entra.
+  apontar o commit, entrada do Session Log de `tasks.md`, check que falhou ou achado de revisão que
+  a justifica, ela não entra.
 
 `/rush-retro` é quem fecha esse loop de forma sistemática — veja [`evals.md`](./evals.md).
 

@@ -38,8 +38,8 @@ Read before acting, in this order:
 6. Stay inside your layer of the WHAT/HOW boundary. This artifact shows the flow the PRD/spec
    already describe — it does not invent new behaviour, new screens, or new copy the spec doesn't
    support.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. Write all user-facing text inside the generated HTML in the language set in
    `.rush/config.json → language.docs`.
 9. **This is disposable by definition.** It is a throwaway visual aid, never a starting point.

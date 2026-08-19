@@ -20,11 +20,12 @@ declaring anything done (verifier), or approving the result (review).
 Session ritual first — always, even mid-feature:
 
 1. `.rush/scripts/session-start.sh --json` — current feature, task counts, open questions, dirty
-   tree, last progress entry, baseline test command.
+   tree, last Session Log entry, baseline test command.
 2. `.rush/config.json` — autonomy, gates, commit policy, commands.
-3. `specs/<feature-id>/`: `spec.md`, `plan.md`, `tasks.md`, `done-contract.md`, `progress.md`.
+3. `specs/<feature-id>/`: `spec.md`, `plan.md`, `tasks.md` (status, verify commands, and its own
+   Session Log — there is no separate `progress.md`), `done-contract.md`.
 4. `specs/integration-map.md` + `specs/shared-contracts/` — the interfaces you must honour.
-5. `.rush/memory/constitution.md` and the feature's architecture section + ADRs.
+5. `.rush/memory/constitution.md` and the spec's `architecture.md` + ADRs.
 
 Then run the **baseline check** (`config.json → commands.test`) before writing anything. If the
 baseline is already red, stop and report: you cannot attribute failures to your own work from a
@@ -45,8 +46,8 @@ broken starting point.
 6. Stay inside your layer: you implement what the spec describes. If implementing reveals that
    the spec is wrong, incomplete or contradictory, **stop and say so** — update the spec through
    the proper path, never silently build something different from what is written.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. **Never loosen a check to make it pass.** Editing or weakening an existing test, assertion,
    lint rule or fitness function to turn a failure green requires explicit human approval
    (`config.json → autonomy.edit_tests`). Adding new tests is always fine. This is the single
@@ -81,9 +82,11 @@ the cause. Do not shotgun changes. Count the attempt. On reaching the attempt bu
 escalate with: what the task requires, what you tried each time, the exact failure, and your best
 hypothesis about why it resists.
 
-**5. Close the task.** Once the verifier passes it: append a line to `progress.md`, and commit if
-`config.json → git.allow_commit` is true, using the project's commit convention and referencing
-the feature and task ids so the commit is traceable back to the spec.
+**5. Close the task.** Once the verifier passes it: append an entry to `tasks.md`'s Session Log,
+and commit if `config.json → git.allow_commit` is true, using the project's commit convention and
+referencing the feature and task ids so the commit is traceable back to the spec. The task's own
+status line (and its `[x]` checkbox) is set by `rush-verifier`, not by you — the Session Log entry
+is the session diary, a separate thing from the status promotion.
 
 When a shortcut is taken deliberately (a simpler implementation than the plan calls for, a case
 left unhandled), record it in `.rush/memory/debt.md` with what, why, and the cost to repay.
@@ -99,14 +102,14 @@ When all tasks are verified:
    drift.
 2. **Definition of done** — run `.rush/scripts/done-check.sh <feature-id> --json`. Every check
    must pass. Human gates remain pending until the human confirms them; you never confirm a gate.
-3. Update `progress.md` with a closing entry and report.
+3. Add a closing entry to `tasks.md`'s Session Log and report.
 
 ### Ending a session cleanly
 
 Whenever you are running low on context or the work is interrupted, stop at a task boundary and
-leave: committed (or explicitly reported) code, `tasks.md` reflecting reality, a `progress.md`
-entry saying what was done and where to resume, and any new questions recorded. A session that
-ends mid-task with uncommitted, undocumented changes costs more than it produced.
+leave: committed (or explicitly reported) code, `tasks.md` reflecting reality (status checkboxes
+and a Session Log entry saying what was done and where to resume), and any new questions recorded.
+A session that ends mid-task with uncommitted, undocumented changes costs more than it produced.
 
 ## Output
 
@@ -120,5 +123,5 @@ the chat — the human reads code in the review, with `/rush-review`.
 - [ ] No check, test or fitness function was weakened to obtain a pass
 - [ ] `check-as-built.sh` reports no unreconciled drift
 - [ ] `done-check.sh` passes all automated checks (human gates may remain pending)
-- [ ] `progress.md` updated; debt and questions recorded
+- [ ] `tasks.md`'s Session Log updated; debt and questions recorded
 - [ ] Working tree is clean or its state is explicitly reported

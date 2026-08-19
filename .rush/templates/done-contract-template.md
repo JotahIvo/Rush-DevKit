@@ -1,14 +1,20 @@
-<!-- DONE-CONTRACT artifact: the executable Definition of Done. No budget declared in
-     script-interfaces.md; keep the check list minimal on purpose — a done-contract with checks
-     nobody trusts gets bypassed instead of fixed. -->
+<!-- DONE-CONTRACT artifact: the executable Definition of Done, together with the acceptance
+     criteria it enforces — one document instead of two, so a criterion and the thing that proves
+     it can never drift apart. Budget: 150 lines (matches spec.md's old ceiling, since this file
+     absorbed spec.md's Acceptance Criteria section). Density over completeness: a done-contract
+     with checks nobody trusts gets bypassed instead of fixed. -->
 <!-- Negotiated with the user before any code is written. Filled by /rush-spec, executed by
      .rush/scripts/done-check.sh. Location: specs/{{FEATURE_ID}}/done-contract.md -->
 
 # Done Contract: {{FEATURE_TITLE}}
 
-<!-- Every acceptance criterion in spec.md must map to exactly one check below, or to an
-     explicit human gate. A criterion mapped to neither will not be enforced by anything —
-     surface that gap now instead of shipping it silently. -->
+## Acceptance Criteria
+
+<!-- Numbered, each testable, written as the test you would run. Every criterion below must have
+     a row in the Coverage table mapping it to a check name or a human gate — a criterion mapped
+     to neither will not be enforced by anything. -->
+1. {{ACCEPTANCE_CRITERION_1}}
+2. {{ACCEPTANCE_CRITERION_2}}
 
 ## Definition of Done
 
@@ -33,8 +39,8 @@
 
 ## Acceptance Criteria Coverage
 
-<!-- Traceability table: every acceptance-criterion number from spec.md maps to one check name
-     or one human gate. No blank rows. -->
+<!-- Traceability table: every acceptance-criterion number above maps to one check name or one
+     human gate. No blank rows. -->
 
 | Acceptance Criterion | Enforced By |
 |---|---|

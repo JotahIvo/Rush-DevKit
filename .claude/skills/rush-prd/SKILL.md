@@ -41,8 +41,8 @@ Read before acting, in this order:
 6. Stay inside your layer of the WHAT/HOW boundary. The PRD owns product intent: vision, goals,
    requirements, success criteria, journeys — **technology-agnostic even though architecture has
    already run**. No stack name, no endpoint, no latency number belongs here.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. **Maximum 3 clarifying questions**, prioritised scope > security/privacy > UX > technical
    detail. Everything else: make an informed default and record it under Assumptions.
 9. Every requirement must be testable — phrased so a tester could write a pass/fail check without

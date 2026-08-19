@@ -19,8 +19,8 @@ Checks: config.json validity (against config.schema.json when present),
 scripts executable + syntactically valid, hooks referenced in
 .claude/settings.json exist and are executable, commands.* resolve,
 python3 availability, orphan specs / code without a spec (heuristic),
-validate-integration-map.sh result, artifact budgets, stale questions.md /
-debt.md entries (doctor.stale_days, default 14), and kit version.
+validate-integration-map.sh result, artifact budgets, stale specs/*/questions.md
+/ debt.md entries (doctor.stale_days, default 14), and kit version.
 
 Usage: doctor.sh [--json] [--fix-suggestions]
 
@@ -537,19 +537,34 @@ def stale_entries(path, today):
 
 
 today = datetime.date.today()
-q_path = os.path.join(ROOT, ".rush", "memory", "questions.md")
 d_path = os.path.join(ROOT, ".rush", "memory", "debt.md")
 
-q_lines, q_stale = stale_entries(q_path, today)
-if q_lines is None:
-    add("questions_stale", "info", True, ".rush/memory/questions.md not present yet — skipped.")
-elif q_stale:
-    add("questions_stale", "warning", False,
-        "%d entr(y/ies) in questions.md older than %d day(s):\n  - " % (len(q_stale), stale_days)
-        + "\n  - ".join("%s (%dd)" % (t, a) for t, a in q_stale[:10]),
-        "Answer or explicitly close these questions.")
+# questions.md moved from one shared .rush/memory/questions.md to one per
+# spec (specs/<spec-id>/questions.md), so open questions stay next to the
+# work they're about instead of piling into a single hard-to-scan file.
+# Aggregate staleness across every spec that has one.
+specs_dir_q = os.path.join(ROOT, "specs")
+q_specs = []
+if os.path.isdir(specs_dir_q):
+    for name in sorted(os.listdir(specs_dir_q)):
+        if os.path.isfile(os.path.join(specs_dir_q, name, "questions.md")):
+            q_specs.append(name)
+
+if not q_specs:
+    add("questions_stale", "info", True, "No specs/*/questions.md present yet — skipped.")
 else:
-    add("questions_stale", "info", True, "No stale entries in questions.md.")
+    all_q_stale = []
+    for spec_name in q_specs:
+        _, q_stale = stale_entries(os.path.join(specs_dir_q, spec_name, "questions.md"), today)
+        for entry_id, age in q_stale:
+            all_q_stale.append(("%s: %s" % (spec_name, entry_id), age))
+    if all_q_stale:
+        add("questions_stale", "warning", False,
+            "%d entr(y/ies) across specs/*/questions.md older than %d day(s):\n  - " % (len(all_q_stale), stale_days)
+            + "\n  - ".join("%s (%dd)" % (t, a) for t, a in all_q_stale[:10]),
+            "Answer or explicitly close these questions.")
+    else:
+        add("questions_stale", "info", True, "No stale entries in specs/*/questions.md.")
 
 d_lines, d_stale = stale_entries(d_path, today)
 if d_lines is None:

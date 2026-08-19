@@ -1,6 +1,6 @@
 ---
 name: rush-contracts
-description: Generate the machine-checkable API/event contracts (OpenAPI, JSON Schema, AsyncAPI) that a feature's spec exposes, frozen as the single source of truth before any implementation starts. Use after /rush-spec has written a spec.md whose Interfaces section describes an endpoint, event or shared schema.
+description: Regenerate or re-sync a feature's machine-checkable API/event contracts (OpenAPI, JSON Schema, AsyncAPI) after spec.md's Interfaces section changed post-freeze. Use when an interface needs to change after /rush-spec already generated and froze its contract — not for the first contract on a new spec, which /rush-spec generates itself.
 argument-hint: "<feature-id or slug>"
 model: sonnet
 disable-model-invocation: false
@@ -8,11 +8,13 @@ disable-model-invocation: false
 
 ## Purpose
 
-Turn the Interfaces section of `spec.md` into real contract files: OpenAPI, JSON Schema or
-AsyncAPI documents under `specs/<id>/contracts/`, or under `specs/shared-contracts/` when the
-interface is consumed by two or more features. The contract is the artifact `rush-analyze` checks
-consumers against and the artifact implementation is built to — after this skill runs, the shape
-is frozen.
+`/rush-spec` already generates a feature's first contract files as part of its own process — this
+skill exists for what comes **after** that: an interface's shape needs to change once it is already
+frozen. Turn an updated Interfaces section of `spec.md` into re-synced contract files (OpenAPI,
+JSON Schema or AsyncAPI) under `specs/<id>/contracts/`, or under `specs/shared-contracts/` when the
+interface is consumed by two or more features, and re-run `/rush-analyze` so every consumer gets
+re-audited against the new shape. It can also be run standalone to (re)generate a contract that,
+for whatever reason, `/rush-spec` did not — the mechanics are identical either way.
 
 Not yours: deciding what the interface should do (that is `spec.md`), implementing it, and
 designing interfaces another feature already owns.
@@ -45,8 +47,8 @@ Read before acting, in this order:
 6. Stay inside your layer of the WHAT/HOW boundary. A contract describes the interface's observable
    shape (paths, payloads, status codes, event names) — it does not contain server internals,
    handler names or storage detail. That belongs to `plan.md`.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. Write all user-facing output and generated artifacts in the language set in
    `.rush/config.json → language.docs` (field names and schema keys stay in English regardless —
    they are code, not prose).
@@ -66,7 +68,9 @@ Read before acting, in this order:
 ## Process
 
 1. **Resolve the feature** and read `spec.md`'s Interfaces section. List every interface this
-   feature provides and every one it consumes, exactly as declared there.
+   feature provides and every one it consumes, exactly as declared there. If a contract already
+   exists for one of them, this is the re-sync case (Guardrail 9) — note what changed since it was
+   last generated so step 5's cross-check has something concrete to compare against.
 
 2. **Classify each provided interface** using `specs/integration-map.md`: consumed by exactly this
    feature ⇒ `specs/<id>/contracts/`; consumed by two or more features (or declared as shared in
@@ -93,6 +97,10 @@ Read before acting, in this order:
 6. **Update `spec.md`'s Interfaces section** so each entry links to the contract file path you just
    wrote (or the existing shared path it references). This is a link, not a content change — do not
    alter the behaviour described in `spec.md`.
+
+7. **Re-run `/rush-analyze`** whenever this was a re-sync of an already-frozen contract (not a
+   first generation), so every consumer the integration map lists gets re-audited against the new
+   shape.
 
 ## Output
 

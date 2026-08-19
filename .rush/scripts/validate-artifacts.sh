@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # validate-artifacts.sh - required sections + line budgets + unresolved
 # placeholder markers for rush artifacts (spec.md, plan.md, tasks.md,
-# done-contract.md, pitch.md, prd.md, CLAUDE.md, constitution.md, and the
-# per-feature section of architecture.md).
+# done-contract.md, pitch.md, prd.md, questions.md, CLAUDE.md,
+# constitution.md, and each spec's own architecture.md plus its condensed
+# summary in .rush/memory/architecture.md).
 #
 # Usage: validate-artifacts.sh [<feature-id>|--all] [--json]
 #
@@ -19,11 +20,13 @@ Validates required sections, line budgets and unresolved placeholder
 markers ([NEEDS CLARIFICATION], TODO, {{...}}, unfilled <...>) across
 rush artifacts.
 
-  <feature-id>   Validate specs/<feature-id>/{spec,plan,tasks,done-contract}.md
-                 plus that feature's architecture.md section, if present.
-  --all          Validate every feature dir plus project-wide artifacts
-                 (CLAUDE.md, .rush/memory/constitution.md, specs/pitch.md,
-                 specs/prd.md), if present. Default when no argument given.
+  <feature-id>   Validate specs/<feature-id>/{spec,plan,tasks,done-contract}.md.
+  --all          Validate every feature dir, every spec's own artifacts
+                 (pitch.md, prd.md, questions.md, architecture.md, and its
+                 condensed summary in .rush/memory/architecture.md), plus
+                 project-wide artifacts (CLAUDE.md,
+                 .rush/memory/constitution.md), if present. Default when no
+                 argument given.
   --json         Print a single JSON object on stdout, nothing else.
   -h, --help     Show this help.
 
@@ -61,23 +64,34 @@ import json, os, re, sys
 root, target = sys.argv[1], sys.argv[2]
 
 # Keys match .rush/config.schema.json -> budgets (NOT the artifact
-# filenames): pitch, prd, spec, plan, architecture, claude_md, constitution.
+# filenames): pitch, prd, spec, plan, architecture, architecture_summary,
+# claude_md, constitution. "architecture" bounds a spec's own, complete
+# specs/<spec-id>/architecture.md; "architecture_summary" bounds the
+# condensed per-spec digest appended to the shared .rush/memory/architecture.md
+# (never the same budget — the summary must stay much smaller than the full
+# document it points back to).
 DEFAULT_BUDGETS = {
     "pitch": 60,
     "prd": 200,
     "spec": 150,
     "plan": 100,
-    "architecture": 100,
+    "architecture": 200,
+    "architecture_summary": 25,
     "claude_md": 60,
     "constitution": 200,
 }
 
-# Maps an artifact's basename to its budgets config key.
+# Maps an artifact's basename to its budgets config key. "architecture.md"
+# here means the full, per-spec version at specs/<spec-id>/architecture.md —
+# the shared .rush/memory/architecture.md is an ever-growing index of many
+# specs' summaries and is budgeted per-section instead (see
+# check_architecture_summary_section).
 BASENAME_TO_BUDGET_KEY = {
     "pitch.md": "pitch",
     "prd.md": "prd",
     "spec.md": "spec",
     "plan.md": "plan",
+    "architecture.md": "architecture",
     "CLAUDE.md": "claude_md",
     "constitution.md": "constitution",
 }
@@ -175,8 +189,13 @@ def find_placeholders(text):
     return found
 
 REQUIRED_SECTIONS = {
-    "spec.md": ["behav", "interface", "data", "edge case", "acceptance criteria", "out of scope", "assumption"],
+    "spec.md": ["behav", "interface", "data", "edge case", "out of scope", "assumption"],
     "plan.md": ["approach", "files", "order of work", "risk", "alternative"],
+    # Acceptance criteria moved out of spec.md and into done-contract.md, merged
+    # with the Definition of Done that enforces them — this required-section
+    # check is the section-heading half of that; check_done_contract() below
+    # separately validates the fenced ```json block and its coverage table.
+    "done-contract.md": ["acceptance criteria", "definition of done", "acceptance criteria coverage"],
 }
 
 def headings(text):
@@ -237,10 +256,17 @@ def check_tasks(rel_path, text, violations):
     # A "## Legend" or other non-task ### heading is not itself a task; we
     # only treat "###" headings as tasks (task ids live one level below
     # the "## Tasks" section, never at "##").
+    #
+    # Once a task is opened by an H3 heading, only another H3 (or a higher
+    # heading) closes it — a "- [x] status: `done`" checkbox sub-bullet
+    # inside the task's own body must never be mistaken for the start of a
+    # new (flat-style) task, even though it matches the same "- [ ]"
+    # shape the fallback checklist format uses at the top level.
     in_fence = False
     lines = text.split("\n")
     tasks = []
     current = None
+    current_is_h3 = False
     for line in lines:
         if FENCE_RE.match(line):
             in_fence = not in_fence
@@ -250,10 +276,12 @@ def check_tasks(rel_path, text, violations):
         is_h3_task = re.match(r"^\s*###\s+\S", line)
         is_checklist = re.match(r"^\s*[-*]\s*\[[ xX]\]", line)
         is_numbered = re.match(r"^\s*\d+[.)]\s+", line)
-        if is_h3_task or is_checklist or is_numbered:
+        starts_new_task = is_h3_task or (not current_is_h3 and (is_checklist or is_numbered))
+        if starts_new_task:
             if current is not None:
                 tasks.append(current)
             current = {"header": line.strip(), "body": []}
+            current_is_h3 = bool(is_h3_task)
         elif current is not None:
             current["body"].append(line)
         elif re.match(r"^\s*##\s+", line):
@@ -316,7 +344,12 @@ def check_done_contract(rel_path, text, violations):
             "severity": "error",
         })
 
-def check_architecture_section(rel_path, text, feature_id, violations, budget_map):
+def check_architecture_summary_section(rel_path, text, spec_id, violations, budget_map):
+    # Finds this spec's condensed digest inside the shared, ever-growing
+    # .rush/memory/architecture.md (one "## <spec-id> — ..." section per
+    # spec, from architecture-summary-template.md) and budgets *that
+    # section alone* — never the whole accumulating file, which has no
+    # single sensible ceiling since it only ever grows as specs are added.
     hs_positions = []
     lines = text.split("\n")
     in_fence = False
@@ -332,7 +365,7 @@ def check_architecture_section(rel_path, text, feature_id, violations, budget_ma
     start = None
     start_level = None
     for i, level, title in hs_positions:
-        if feature_id in title:
+        if spec_id in title:
             start = i
             start_level = level
             break
@@ -345,11 +378,11 @@ def check_architecture_section(rel_path, text, feature_id, violations, budget_ma
             break
     section_text = "\n".join(lines[start:end])
     n = budget_line_count(section_text)
-    limit = budget_map.get("architecture", DEFAULT_BUDGETS["architecture"])
+    limit = budget_map.get("architecture_summary", DEFAULT_BUDGETS["architecture_summary"])
     if n > limit:
         violations.append({
             "file": rel_path, "rule": "budget",
-            "message": "section for %s: %d lines (max %d)" % (feature_id, n, limit),
+            "message": "summary section for %s: %d lines (max %d)" % (spec_id, n, limit),
             "severity": "error",
         })
     check_placeholders(rel_path, section_text, violations)
@@ -381,6 +414,15 @@ def feature_ids():
                 out.append("%s/%s" % (spec_name, feat_name))
     return out
 
+def spec_ids():
+    specs = os.path.join(root, "specs")
+    if not os.path.isdir(specs):
+        return []
+    return sorted(
+        n for n in os.listdir(specs)
+        if os.path.isdir(os.path.join(specs, n)) and re.match(r"^\d{3}-", n)
+    )
+
 violations = []
 checked = []
 bmap = budgets()
@@ -399,14 +441,31 @@ def validate_feature(fid):
             check_tasks(rel, text, violations)
         elif fname == "done-contract.md":
             check_done_contract(rel, text, violations)
+            check_sections(rel, text, violations)
         else:
             check_sections(rel, text, violations)
-    arch_text = read(".rush/memory/architecture.md")
-    if arch_text is not None:
-        check_architecture_section(".rush/memory/architecture.md", arch_text, fid, violations, bmap)
+
+def validate_spec(spec_id):
+    # pitch.md/prd.md/questions.md/architecture.md all live directly in
+    # specs/<spec-id>/ now (the v0.2.0 nested layout) — this is also the
+    # only place any of them is actually checked; there is no separate
+    # top-level specs/pitch.md or specs/prd.md any more.
+    sdir = "specs/%s" % spec_id
+    for fname in ("pitch.md", "prd.md", "questions.md", "architecture.md"):
+        rel = "%s/%s" % (sdir, fname)
+        text = read(rel)
+        if text is None:
+            continue
+        checked.append(rel)
+        check_budget(rel, text, violations, bmap)
+        check_placeholders(rel, text, violations)
+    arch_mem_text = read(".rush/memory/architecture.md")
+    if arch_mem_text is not None:
+        checked.append(".rush/memory/architecture.md#%s" % spec_id)
+        check_architecture_summary_section(".rush/memory/architecture.md", arch_mem_text, spec_id, violations, bmap)
 
 def validate_project_wide():
-    for rel in ("CLAUDE.md", ".rush/memory/constitution.md", "specs/pitch.md", "specs/prd.md"):
+    for rel in ("CLAUDE.md", ".rush/memory/constitution.md"):
         text = read(rel)
         if text is None:
             continue
@@ -417,6 +476,8 @@ def validate_project_wide():
 if target == "--all":
     for fid in feature_ids():
         validate_feature(fid)
+    for sid in spec_ids():
+        validate_spec(sid)
     validate_project_wide()
 else:
     fdir_path = os.path.join(root, "specs", target)

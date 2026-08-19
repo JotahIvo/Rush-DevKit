@@ -35,7 +35,7 @@
 
 - Architecture decisions: `.rush/memory/architecture.md` + `specs/*/adr/`
 - Cross-feature contracts: `specs/integration-map.md`, `specs/shared-contracts/`
-- Open questions / known debt: `.rush/memory/questions.md`, `.rush/memory/debt.md`
+- Open questions: `specs/<spec-id>/questions.md` (per spec). Known debt: `.rush/memory/debt.md`
 - Scripts (never reimplement in prose what these already do): `.rush/scripts/`
 
 <!-- Do not paste spec, plan or architecture content into this file. It is a pointer, not a

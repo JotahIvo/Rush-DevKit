@@ -4,7 +4,7 @@
   "description": "A spec must not contain agent process instructions ('run the test suite', 'commit at the end') — that is harness configuration, not observable WHAT (SKILL.md Guardrail 6, the WHAT/HOW boundary). Guards against rush-spec bleeding implementation-agent process into spec.md.",
   "given": {
     "cwd": ".rush/evals/fixtures/spec-with-process-leak",
-    "scenario": "Fixture spec.md whose acceptance criterion 2 reads 'Run the test suite and commit the result before marking this task complete' — a process instruction that belongs in .rush/config.json or rush-implement's guardrails, never in spec.md."
+    "scenario": "Fixture spec.md whose Edge Cases & Failure Modes section includes 'Before marking this done, run the test suite and commit the result' — a process instruction that belongs in .rush/config.json or rush-implement's guardrails, never in spec.md."
   },
   "graders": [
     { "type": "file_exists", "path": "spec.md" },

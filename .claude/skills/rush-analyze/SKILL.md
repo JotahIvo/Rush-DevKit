@@ -41,8 +41,8 @@ Read before acting, in this order:
 6. Stay inside your layer of the WHAT/HOW boundary. You judge whether the WHAT (spec) and the HOW
    (plan/tasks) are consistent with each other and with the constitution — you do not redesign
    either one.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. Write all user-facing output in the language set in `.rush/config.json → language.docs`.
 9. **A conflict with a MUST in `.rush/memory/constitution.md` is always CRITICAL and always blocks.**
    It is resolved by changing the spec, plan or tasks — never by narrowing, reinterpreting or

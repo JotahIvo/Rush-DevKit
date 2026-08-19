@@ -20,12 +20,6 @@ The system exports a report on request.
 
 - No data available → 204.
 
-## Acceptance Criteria
-
-1. A GET to /report returns 200 with a report body when data exists.
-2. A GET to /report returns 204 when no data exists.
-3. A GET to /report from an unauthenticated caller returns 401.
-
 ## Out of Scope
 
 - Scheduled report generation.

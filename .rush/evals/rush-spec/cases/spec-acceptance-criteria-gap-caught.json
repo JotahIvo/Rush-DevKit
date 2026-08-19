@@ -1,16 +1,16 @@
 {
   "id": "spec-acceptance-criteria-gap-caught",
   "agent": "rush-spec",
-  "description": "Every acceptance criterion in spec.md must map to a check or a human gate in done-contract.md (SKILL.md process step 7: 'A criterion that is neither is a criterion that will not be enforced'). Guards against a done-contract.md shipped with a silently uncovered criterion.",
+  "description": "Every acceptance criterion in done-contract.md must map to a check or a human gate in its own Coverage table (SKILL.md process step 8: 'A criterion mapped to neither will not be enforced'). Guards against a done-contract.md shipped with a silently uncovered criterion. Acceptance criteria live in done-contract.md, not spec.md, since the merge that put them next to the checks that enforce them.",
   "given": {
     "cwd": ".rush/evals/fixtures/ac-coverage-gap",
-    "scenario": "Fixture spec.md has 3 numbered acceptance criteria; done-contract.md's coverage table only maps criteria 1 and 2, leaving criterion 3 ('unauthenticated caller returns 401') untraceable to anything."
+    "scenario": "Fixture done-contract.md has 3 numbered acceptance criteria; its own coverage table only maps criteria 1 and 2, leaving criterion 3 ('unauthenticated caller returns 401') untraceable to anything."
   },
   "graders": [
     { "type": "file_exists", "path": "spec.md" },
     { "type": "file_exists", "path": "done-contract.md" },
     { "type": "file_exists", "path": "check_ac_coverage.py" },
-    { "type": "script", "run": "python3 check_ac_coverage.py spec.md done-contract.md", "expect": "exit 1" },
-    { "type": "script", "run": "python3 check_ac_coverage.py spec.md done-contract.md", "expect": "contains: UNCOVERED_ACCEPTANCE_CRITERIA" }
+    { "type": "script", "run": "python3 check_ac_coverage.py done-contract.md", "expect": "exit 1" },
+    { "type": "script", "run": "python3 check_ac_coverage.py done-contract.md", "expect": "contains: UNCOVERED_ACCEPTANCE_CRITERIA" }
   ]
 }

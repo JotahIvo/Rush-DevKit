@@ -9,13 +9,16 @@ before anyone looked at the codebase is exactly the checklist theater the kit ex
 |---|---|---|---|
 | `constitution.md` | `/rush-init`, `/rush-new`; amended by `/rush-retro` | every agent; enforced by `/rush-analyze` | Binding principles. A `MUST` violation blocks implementation. Starts minimal, grows only by ratchet. |
 | `product.md` | `/rush-init`, `/rush-new` | `rush-pitch`, `rush-prd`, `rush-architect` | What the product is, who it serves, its stage, and **what must never break**. |
-| `architecture.md` | `/rush-init` (as-is), `/rush-new` (as-intended) | `rush-architect`, `rush-spec`, `rush-explorer` | The real shape of the system, including deliberate oddities so no agent "fixes" them. |
+| `architecture.md` | `/rush-init` (as-is), `/rush-new` (as-intended), `/rush-architect` (appends one condensed per-spec summary after each run) | `rush-architect`, `rush-spec`, `rush-explorer` | The real shape of the system, including deliberate oddities so no agent "fixes" them, plus a running index of every spec's architecture summary. The full text for one spec lives at `specs/<spec-id>/architecture.md`, never copied here. |
 | `decisions/` | `/rush-architect` | `rush-spec`, `rush-review`, `rush-analyze` | ADRs: context, decision, rejected alternatives and why. |
 | `fitness/` | `/rush-architect` (shipped with one example) | `.rush/scripts/fitness.sh` | Executable architecture checks. This is how a decision survives contact with future code. |
 | `lessons.md` | `/rush-retro` | `/rush-retro`, humans | Ratchet log: every rule that exists, and the concrete failure that earned it. |
-| `questions.md` | any agent | `session-start.sh`, `/rush-retro` | Non-blocking questions, each with the assumption adopted meanwhile. |
 | `debt.md` | `/rush-implement` | `/rush-retro`, `/rush-review` | Deliberate shortcuts: what, why, cost to repay. |
 | `checklist.md` | `/rush-review`, `/rush-retro` | `/rush-review`, `/rush-analyze` | The project's standing quality checklist. Items that never catch anything get retired. |
+
+Open questions are **not** in this directory: each spec keeps its own `specs/<spec-id>/questions.md`
+(any agent appends there, `session-start.sh` and `/rush-retro` read it) so questions stay next to
+the work they're about instead of piling into one shared, hard-to-scan file.
 
 Templates for all of these live in `.rush/templates/`.
 

@@ -66,7 +66,8 @@ Com o Claude Code aberto na raiz do projeto, rode:
 subagent `rush-explorer`, confirma o que detectou com você, faz uma entrevista curta sobre o que o
 código não revela (produto, estágio, o que nunca pode quebrar) e só então gera, com sua aprovação:
 `CLAUDE.md`, `.rush/config.json`, `.rush/memory/constitution.md`, `.rush/memory/product.md`,
-`.rush/memory/architecture.md` e os arquivos vazios `questions.md`, `debt.md`, `lessons.md`. No
+`.rush/memory/architecture.md` e os arquivos vazios `debt.md`, `lessons.md` (`questions.md` é
+seedado por spec, via `new-spec.sh`, não aqui). No
 final ele roda os comandos configurados (test/lint/build/typecheck) e `doctor.sh` como smoke
 test — **o harness só é considerado instalado se os comandos realmente rodarem**.
 
@@ -147,23 +148,24 @@ Ela cria o diretório da feature:
 .rush/scripts/new-feature.sh health-check --title "Health check endpoint" --json
 ```
 
-o que gera `specs/003-health-check/` com `spec.md`, `plan.md`, `tasks.md`, `done-contract.md` e
-`progress.md` copiados dos templates (com `{{FEATURE_ID}}`, `{{FEATURE_TITLE}}`, `{{DATE}}` já
-substituídos), e registra a feature como ativa em `.rush/state.json`.
+o que gera `specs/003-health-check/` com `spec.md`, `plan.md`, `tasks.md` e `done-contract.md`
+copiados dos templates (com `{{FEATURE_ID}}`, `{{FEATURE_TITLE}}`, `{{DATE}}` já substituídos), e
+registra a feature como ativa em `.rush/state.json`.
 
 Em seguida, `rush-quick` escreve:
 
 - **`spec.md`** (dentro do orçamento de 150 linhas): Behaviour (o que o endpoint retorna e em que
-  condições), Interfaces → Provides `GET /health`, Acceptance Criteria numeradas e testáveis, Out
-  of Scope, Assumptions. Como o endpoint é uma interface nova, `specs/integration-map.md` é
-  atualizado com a entrada `provides` correspondente e `.rush/scripts/validate-integration-map.sh
-  --json` é rodado para confirmar que não há violação.
-- **`tasks.md`**: unidades pequenas e independentemente verificáveis, cada uma com seu `verify:`,
-  todas começando `pending`. Exemplo: `T1 — implementar handler GET /health` com
-  `verify: npm test -- health`.
-- **`done-contract.md`**: bloco `json` com pelo menos um check de teste de aceitação, mais
-  `validate-integration-map.sh` já que uma interface foi tocada, e um `human_gates` para a revisão
-  assistida.
+  condições), Interfaces → Provides `GET /health`, Edge Cases & Failure Modes, Out of Scope,
+  Assumptions. Como o endpoint é uma interface nova, `specs/integration-map.md` é atualizado com a
+  entrada `provides` correspondente e `.rush/scripts/validate-integration-map.sh --json` é rodado
+  para confirmar que não há violação.
+- **`tasks.md`**: unidades pequenas e independentemente verificáveis, cada uma com seu `verify:` e
+  um checkbox de status (`- [ ] status: \`pending\``), todas começando `pending`. Exemplo:
+  `T1 — implementar handler GET /health` com `verify: npm test -- health`.
+- **`done-contract.md`**: Acceptance Criteria numeradas e testáveis, mais o bloco `json` com pelo
+  menos um check de teste de aceitação, `validate-integration-map.sh` já que uma interface foi
+  tocada, e um `human_gates` para a revisão assistida — e a Coverage table que liga cada critério a
+  um check ou gate.
 
 Depois roda `.rush/scripts/validate-artifacts.sh 003-health-check --json` e corrige qualquer
 violação de orçamento ou seção faltante (até 3 iterações).
@@ -171,12 +173,12 @@ violação de orçamento ou seção faltante (até 3 iterações).
 Neste ponto, `specs/003-health-check/` contém:
 
 ```
-spec.md            — behaviour + interface GET /health + critérios de aceite
+spec.md            — behaviour + interface GET /health
 plan.md             — ainda o template não preenchido (o caminho M não gera um plano separado;
                        o "como" cabe nos verify: das tasks)
-tasks.md            — tasks pendentes, cada uma com verify:
-done-contract.md    — checks + human_gates negociados com você antes de qualquer código
-progress.md         — vazio, pronto para a primeira entrada de sessão
+tasks.md            — tasks pendentes, cada uma com verify: e checkbox de status; Session Log vazio
+done-contract.md    — critérios de aceite + checks + human_gates negociados com você antes de
+                       qualquer código
 ```
 
 O que você decide aqui: aprovar o `done-contract.md` proposto (é negociado, não imposto) e
@@ -201,9 +203,10 @@ Para cada task, o loop é sempre o mesmo:
    tentativa. Ao atingir `autonomy.max_attempts_per_task` (padrão 3), para e escala ao humano com o
    que tentou e por quê acha que falha.
 5. **Close** — só o `rush-verifier` promove a task:
-   `task-status.sh 003-health-check --set T1 done --by rush-verifier`. Depois, uma linha em
-   `progress.md` e um commit (se `git.allow_commit` for `true`), com a convenção de commit do
-   projeto e referência à feature/task.
+   `task-status.sh 003-health-check --set T1 done --by rush-verifier` (o que também marca o
+   checkbox `[x]` na linha de status). Depois, uma entrada no Session Log de `tasks.md` e um commit
+   (se `git.allow_commit` for `true`), com a convenção de commit do projeto e referência à
+   feature/task.
 
 Ao fim de todas as tasks: `check-as-built.sh 003-health-check --json` (reconcilia qualquer drift
 entre o que foi planejado e o que o git mostra) e `done-check.sh 003-health-check --json` (executa
@@ -230,7 +233,7 @@ aconteceu no caminho em um mecanismo permanente — veja [`evals.md`](./evals.md
 
 ## Próximos passos
 
-- Entenda os 17 skills e 3 subagents em [`agents.md`](./agents.md).
+- Entenda os 18 skills e 3 subagents em [`agents.md`](./agents.md).
 - Entenda a triagem S/M/L e o fluxo completo L em [`flow.md`](./flow.md).
 - Entenda hooks, config e os limites de segurança em [`harness.md`](./harness.md).
 - Entenda o que "pronto" significa em cada nível em [`definition-of-done.md`](./definition-of-done.md).

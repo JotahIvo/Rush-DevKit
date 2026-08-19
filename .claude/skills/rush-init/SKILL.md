@@ -81,7 +81,8 @@ should be left alone for now; who approves what, if there is a team.
    - `.rush/memory/constitution.md`: only principles the user confirmed as binding, each with a
      rationale, plus the governance section.
    - `.rush/memory/product.md`, `.rush/memory/architecture.md` (the real shape, with the
-     deliberate oddities noted), and empty `questions.md`, `debt.md`, `lessons.md`.
+     deliberate oddities noted), and empty `debt.md`, `lessons.md`. There is no project-level
+     `questions.md` any more — `new-spec.sh` seeds one per spec once the first spec exists.
    - `.rush/config.json`: from `config.default.json`, overlaid with the detected commands,
      the preset's `config_overrides`, and the user's answers. It must validate against
      `.rush/config.schema.json`.

@@ -41,8 +41,8 @@ Read before acting, in this order:
 5. Never mark work as done yourself. Only `rush-verifier` promotes status.
 6. Stay inside your layer of the WHAT/HOW boundary (see `docs/internals/kit-conventions.md`).
    Agent process (running tests, committing) is harness configuration — it never belongs in a spec.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. Write all user-facing output and generated artifacts in the language set in
    `.rush/config.json → language.docs`.
 9. **Escalate the moment M stops being true — do not push through.** If, at any point while

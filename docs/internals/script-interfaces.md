@@ -81,14 +81,14 @@ Sem sinais e `file_count <= triage.max_files_for_S` ⇒ `S`. Caso contrário `M`
 
 ### `new-spec.sh <slug> [--title "..."] [--json]`
 
-Cria `specs/NNN-<slug>/` (NNN sequencial de 3 dígitos, **nível pai**), copia `pitch.md`/`prd.md`
-dos templates, registra o spec em `.rush/state.json` (`current_spec`, `specs[]`). Idempotente:
-slug existente retorna o diretório sem sobrescrever. Zera `current_feature` ao trocar de spec —
-uma feature de outro spec não deve continuar "ativa" depois da troca.
+Cria `specs/NNN-<slug>/` (NNN sequencial de 3 dígitos, **nível pai**), copia `pitch.md`/`prd.md`/
+`questions.md` dos templates, registra o spec em `.rush/state.json` (`current_spec`, `specs[]`).
+Idempotente: slug existente retorna o diretório sem sobrescrever. Zera `current_feature` ao trocar
+de spec — uma feature de outro spec não deve continuar "ativa" depois da troca.
 
 ```json
 { "spec_id": "001-autenticacao-google", "dir": "specs/001-autenticacao-google",
-  "created": ["pitch.md", "prd.md"], "already_existed": false }
+  "created": ["pitch.md", "prd.md", "questions.md"], "already_existed": false }
 ```
 
 ### `new-feature.sh <spec-id> <slug> [--title "..."] [--json]`
@@ -104,7 +104,7 @@ spec retorna o diretório sem sobrescrever.
 ```json
 { "spec_id": "001-autenticacao-google", "feature_id": "002-entrada-com-google",
   "dir": "specs/001-autenticacao-google/002-entrada-com-google",
-  "created": ["spec.md","plan.md","tasks.md","done-contract.md","progress.md"],
+  "created": ["spec.md","plan.md","tasks.md","done-contract.md"],
   "already_existed": false }
 ```
 
@@ -139,7 +139,9 @@ Valida seções obrigatórias, **orçamentos de tamanho** e marcadores pendentes
 ```
 
 Orçamentos (linhas): `pitch.md` 60 · `prd.md` 200 · `spec.md` 150 · `plan.md` 100 ·
-`architecture` (seção da feature) 100 · `CLAUDE.md` 60 · `constitution.md` 200.
+`architecture` (`specs/<spec-id>/architecture.md`, documento completo) 200 ·
+`architecture_summary` (resumo condensado em `.rush/memory/architecture.md`) 25 ·
+`CLAUDE.md` 60 · `constitution.md` 200.
 Sobrescrevíveis em `config.json → budgets`. Exit 1 se houver `severity: error`.
 
 ### `validate-integration-map.sh [--json]`
@@ -228,15 +230,15 @@ atribuições suspeitas). Respeita `.rush/secret-scan-allow` (uma regex por linh
 ### `session-start.sh [--json]`
 
 Ritual de início de sessão: feature atual, contagem de tasks por status, perguntas não respondidas
-em `questions.md`, débitos abertos, working tree suja, últimos commits, última entrada de progresso
-e o comando de teste baseline sugerido.
+no `questions.md` do spec atual, débitos abertos, working tree suja, últimos commits, última
+entrada do Session Log de `tasks.md` e o comando de teste baseline sugerido.
 
 ### `doctor.sh [--json] [--fix-suggestions]`
 
 Diagnóstico: config válido contra o schema · scripts executáveis · hooks referenciados existem ·
 comandos do config funcionam · specs órfãs (sem código) e código sem spec · integration map válido ·
-orçamentos estourados · questions/debt parados há mais de N dias · drift acumulado · versão do kit.
-Exit 1 se houver item `severity: error`.
+orçamentos estourados · questions (de cada spec) e debt parados há mais de N dias · drift
+acumulado · versão do kit. Exit 1 se houver item `severity: error`.
 
 ### `eval.sh [<agente>|--all] [--json] [--case <id>]`
 

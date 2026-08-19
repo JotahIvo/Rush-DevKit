@@ -45,8 +45,8 @@ Read before acting, in this order:
 5. Never mark work as done yourself. Only `rush-verifier` promotes status.
 6. Stay inside your layer of the WHAT/HOW boundary. The map declares interfaces (endpoints,
    events, components, data, modules) at the boundary level — never their internal implementation.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. **A consume without a matching provider, a duplicate provider, or a dependency cycle is an
    error, not a warning.** Do not ship a map with any of these unresolved — `validate-integration-map.sh`
    must exit 0 before this task is done.

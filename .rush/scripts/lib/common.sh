@@ -163,10 +163,12 @@ rush_config_bool() {
 
 # --- spec / feature nesting -------------------------------------------
 #
-# specs/<spec-id>/ is the PARENT unit ("spec"): pitch.md and prd.md live
-# directly in it. Deliverable work lives one level deeper, in
+# specs/<spec-id>/ is the PARENT unit ("spec"): pitch.md, prd.md and
+# questions.md live directly in it (also architecture.md, once
+# /rush-architect has run). Deliverable work lives one level deeper, in
 # specs/<spec-id>/<feature-id>/: spec.md, plan.md, tasks.md,
-# done-contract.md, progress.md. Both levels carry their own independent
+# done-contract.md (there is no separate progress.md - tasks.md's own
+# Session Log section covers that). Both levels carry their own independent
 # numeric id (feature ids restart at 001 inside each spec, same as task
 # ids restart inside each feature's tasks.md). This nesting exists because
 # a spec is routinely one appetite/PRD worth of work split into several
@@ -220,7 +222,7 @@ rush_spec_dir() {
 
 # rush_feature_dir <feature-id> [spec-id]
 # Echo "specs/<spec-id>/<full-feature-id>" — the level where
-# spec.md/plan.md/tasks.md/done-contract.md/progress.md actually live.
+# spec.md/plan.md/tasks.md/done-contract.md actually live.
 # Searches every spec under specs/*/ unless [spec-id] narrows it (pass it
 # whenever you already know the spec, and always when a feature id/prefix
 # could plausibly collide across specs). Exact match wins over prefix

@@ -37,8 +37,8 @@ yourself. Every fix is a proposal the user approves and runs.
 5. Never mark work as done yourself. Only `rush-verifier` promotes status.
 6. Stay inside your layer of the WHAT/HOW boundary (see `docs/internals/kit-conventions.md`).
    Agent process (running tests, committing) is harness configuration — it never belongs in a spec.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. Write all user-facing output in the language set in `.rush/config.json → language.docs`.
 9. **Never fix anything silently.** No edit to `config.json`, no `chmod +x`, no touching a stale
    spec, no answering a stuck question on the user's behalf. Every remediation in the report is a

@@ -20,12 +20,13 @@ gate on the human's behalf.
 ## Inputs
 
 1. `.rush/config.json` — language, gates.
-2. `specs/<feature-id>/`: `spec.md`, `plan.md`, `tasks.md`, `done-contract.md`, `progress.md`.
-3. The feature's architecture section, its ADRs, and `.rush/memory/constitution.md`.
+2. `specs/<feature-id>/`: `spec.md`, `plan.md`, `tasks.md` (its Session Log covers what used to be
+   `progress.md`), `done-contract.md`.
+3. The spec's `architecture.md`, its ADRs, and `.rush/memory/constitution.md`.
 4. `specs/integration-map.md` — what this feature promised to provide and consume.
 5. The diff: commits attributable to the feature, or the working tree if not yet committed.
 6. `.rush/scripts/done-check.sh <feature-id> --json` — the objective state before you start.
-7. `.rush/memory/debt.md` and `questions.md` — what was consciously deferred.
+7. `.rush/memory/debt.md` and the spec's `questions.md` — what was consciously deferred.
 
 ## Guardrails
 
@@ -40,8 +41,8 @@ gate on the human's behalf.
    confirms a human gate.
 6. Stay inside your layer: you explain and assess code against the spec. You do not redesign the
    feature mid-review — a better idea becomes a finding or a follow-up feature, not an edit.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. **Do not fix anything during the review.** Findings are recorded; fixing happens afterwards
    through `/rush-implement`. Editing while explaining destroys the human's mental model of what
    they just approved.

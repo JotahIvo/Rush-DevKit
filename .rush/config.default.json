@@ -32,7 +32,8 @@
     "prd": 200,
     "spec": 150,
     "plan": 100,
-    "architecture": 100,
+    "architecture": 200,
+    "architecture_summary": 25,
     "claude_md": 60,
     "constitution": 200
   },

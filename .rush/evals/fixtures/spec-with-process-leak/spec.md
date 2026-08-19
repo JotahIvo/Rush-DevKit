@@ -21,11 +21,7 @@ The system exposes a health check endpoint.
 ## Edge Cases & Failure Modes
 
 - Dependency down → 503.
-
-## Acceptance Criteria
-
-1. A GET to /health returns 200 when the service is up.
-2. Run the test suite and commit the result before marking this task complete.
+- Before marking this done, run the test suite and commit the result.
 
 ## Out of Scope
 

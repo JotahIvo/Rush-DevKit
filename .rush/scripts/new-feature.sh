@@ -26,12 +26,15 @@ Usage: new-feature.sh <spec-id> <slug> [--title "..."] [--json]
 
 Creates specs/<spec-id>/MMM-<slug>/ (MMM is the next sequential 3-digit
 id *within that spec*; a different spec numbers its own features
-starting at 001 too), copying spec.md, plan.md, tasks.md,
-done-contract.md and progress.md from .rush/templates/ (only the ones
-that exist there are copied), with {{FEATURE_ID}}, {{FEATURE_TITLE}} and
-{{DATE}} substituted. Registers the feature in .rush/state.json
+starting at 001 too), copying spec.md, plan.md, tasks.md and
+done-contract.md from .rush/templates/ (only the ones that exist there
+are copied), with {{FEATURE_ID}}, {{FEATURE_TITLE}} and {{DATE}}
+substituted. Registers the feature in .rush/state.json
 (current_spec, current_feature, features[] - each record carries the
 owning spec_id).
+
+There is no per-feature progress.md any more: session-to-session diary
+entries live in tasks.md's own "Session Log" section instead.
 
 <spec-id> may be a full id or a numeric prefix (resolved the same way
 feature ids are, via rush_spec_dir) and must already exist - run
@@ -163,7 +166,6 @@ if not already_existed:
         ("plan-template.md", "plan.md"),
         ("tasks-template.md", "tasks.md"),
         ("done-contract-template.md", "done-contract.md"),
-        ("progress-template.md", "progress.md"),
     ]
     for template_name, dest_name in template_map:
         src = os.path.join(templates_dir, template_name)

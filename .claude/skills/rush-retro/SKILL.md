@@ -11,8 +11,8 @@ disable-model-invocation: true
 Close the ratchet loop: every real failure this feature produced — a bug that shipped, a check
 that caught something late, a question wrongly marked non-blocking, a rule nobody wrote down —
 becomes either a deterministic mechanism (eval case, script, hook) or, only when a mechanism isn't
-possible, an explicit earned rule traced to that failure. It also audits `debt.md` and
-`questions.md` so nothing sits open without a decision.
+possible, an explicit earned rule traced to that failure. It also audits `debt.md` and every
+relevant spec's `questions.md` so nothing sits open without a decision.
 
 Not yours: re-opening or re-implementing the feature itself, and writing binding constitution
 changes without confirmation — you propose those, you don't ship them unilaterally.
@@ -22,13 +22,14 @@ changes without confirmation — you propose those, you don't ship them unilater
 Read before acting, in this order:
 
 1. `.rush/config.json` — language, budgets.
-2. `specs/<id>/progress.md` and git history for the feature's commits — what actually happened,
-   not what was planned.
+2. `specs/<spec-id>/<id>/tasks.md`'s Session Log and git history for the feature's commits — what
+   actually happened, not what was planned (there is no separate progress.md any more).
 3. Verifier failure history: prior `.rush/scripts/done-check.sh <id> --json` runs, or re-run it now
    for the current state.
 4. Review findings, if `/rush-review` produced any for this feature.
-5. `.rush/memory/lessons.md`, `.rush/memory/debt.md`, `.rush/memory/questions.md`, `CLAUDE.md`,
-   `.rush/memory/constitution.md`, `.rush/memory/fitness/*.sh` — existing mechanisms and open items.
+5. `.rush/memory/lessons.md`, `.rush/memory/debt.md`, the feature's spec's `questions.md`,
+   `CLAUDE.md`, `.rush/memory/constitution.md`, `.rush/memory/fitness/*.sh` — existing mechanisms
+   and open items.
 6. `.rush/evals/*/cases/` — existing eval case shapes, so new cases match the runner's format
    instead of inventing one.
 
@@ -45,14 +46,15 @@ Read before acting, in this order:
 6. Stay inside your layer of the WHAT/HOW boundary. A retro produces harness configuration
    (`CLAUDE.md`, constitution, eval cases, fitness functions) — it never rewrites the feature's
    spec or plan to match what actually got built; drift there is `check-as-built.sh`'s job to flag.
-7. Blocking question: ask the user. Non-blocking question: append to `.rush/memory/questions.md`
-   with the assumption you adopted, and continue.
+7. Blocking question: ask the user. Non-blocking question: append to the current spec's
+   `specs/<spec-id>/questions.md` with the assumption you adopted, and continue.
 8. Write all user-facing output and new prose entries (`lessons.md`, `CLAUDE.md`, ADRs) in the
    language set in `.rush/config.json → language.docs`.
 9. **Every new rule must trace to a concrete failure.** No rule added because it sounds like good
    practice, matches a preference, or "couldn't hurt." If you cannot point to a specific commit,
-   `progress.md` entry, failed check, or review finding that this rule would have prevented, do not
-   add it — this is what keeps `CLAUDE.md` under 60 lines and stops checklist theater.
+   `tasks.md` Session Log entry, failed check, or review finding that this rule would have
+   prevented, do not add it — this is what keeps `CLAUDE.md` under 60 lines and stops checklist
+   theater.
 10. **Prefer a mechanism over a written rule.** If the failure could have been caught
     deterministically, the fix is a new eval case, a fitness function, or a hook — not a sentence
     a future agent might skip past. Reach for prose only when the judgement genuinely cannot be
@@ -63,13 +65,13 @@ Read before acting, in this order:
 12. **Constitution edits are proposed, not applied silently.** A new MUST becomes an immediate
     CRITICAL blocker in every future `/rush-analyze` run. Present the exact diff and wait for
     explicit confirmation before writing to `constitution.md`. `CLAUDE.md`, `lessons.md`,
-    `debt.md`, `questions.md` and new eval cases can be written directly, then summarised.
+    `debt.md`, a spec's `questions.md` and new eval cases can be written directly, then summarised.
 13. Every debt item gets a decision, not a re-read. "Still relevant, revisit later" is not a
     decision — charge it to a task or accept it formally with a stated reason.
 
 ## Process
 
-1. **Gather evidence.** Read `progress.md` and the feature's git log; re-run
+1. **Gather evidence.** Read the feature's `tasks.md` Session Log and its git log; re-run
    `.rush/scripts/done-check.sh <feature-id> --json` if no failure history was captured live.
    Collect review findings if present. For a project-wide sweep (no feature-id), do this across
    every feature closed since the last retro (check `lessons.md` for the last entry date).
@@ -104,10 +106,11 @@ Read before acting, in this order:
    it formally (mark accepted, with a one-line reason). No item should leave this step still
    "open" without one of those two.
 
-6. **Audit `.rush/memory/questions.md`.** Find questions marked non-blocking whose adopted
-   assumption the evidence in step 1 shows was wrong, or that caused rework. Reclassify: note in
-   `lessons.md` that this class of question should have been blocking, and — if it recurs — treat
-   that pattern itself as a candidate rule under step 3.
+6. **Audit the relevant spec's `questions.md`** (every spec touched, for a project-wide sweep).
+   Find questions marked non-blocking whose adopted assumption the evidence in step 1 shows was
+   wrong, or that caused rework. Reclassify: note in `lessons.md` that this class of question
+   should have been blocking, and — if it recurs — treat that pattern itself as a candidate rule
+   under step 3.
 
 7. **Draft an ADR** only if a genuinely new structural pattern emerged (not a one-off tactical fix).
    Record it where the project's existing ADRs live (check `.rush/memory/architecture.md` first
@@ -124,8 +127,8 @@ Read before acting, in this order:
 
 ## Output
 
-Files touched, as applicable: `.rush/memory/lessons.md`, `.rush/memory/debt.md`,
-`.rush/memory/questions.md`, `CLAUDE.md`, `.rush/evals/<agent>/cases/*.json`,
+Files touched, as applicable: `.rush/memory/lessons.md`, `.rush/memory/debt.md`, the relevant
+spec(s)' `questions.md`, `CLAUDE.md`, `.rush/evals/<agent>/cases/*.json`,
 `.rush/memory/fitness/*.sh`, an ADR draft. Report to the user, in ≤ 12 lines:
 
 - failures reviewed and their source (commits/progress/review findings)

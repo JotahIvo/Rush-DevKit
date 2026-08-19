@@ -357,8 +357,14 @@
         "architecture": {
           "type": "integer",
           "minimum": 1,
-          "description": "Max lines for the per-feature section of the architecture document (not the whole architecture.md, which can span many features).",
-          "default": 100
+          "description": "Max lines for a spec's own, complete specs/<spec-id>/architecture.md.",
+          "default": 200
+        },
+        "architecture_summary": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Max lines for one spec's condensed digest inside the shared .rush/memory/architecture.md (not the whole file, which accumulates one digest per spec and has no single sensible ceiling). Must stay much smaller than the 'architecture' budget it points back to — it is a pointer, never a copy.",
+          "default": 25
         },
         "claude_md": {
           "type": "integer",
@@ -378,7 +384,8 @@
         "prd": 200,
         "spec": 150,
         "plan": 100,
-        "architecture": 100,
+        "architecture": 200,
+        "architecture_summary": 25,
         "claude_md": 60,
         "constitution": 200
       }
@@ -414,7 +421,7 @@
         "stale_days": {
           "type": "integer",
           "minimum": 1,
-          "description": "Number of days an open item in questions.md or a debt entry can go untouched before doctor.sh flags it as stalled and in need of human attention.",
+          "description": "Number of days an open item in a spec's questions.md or a debt entry can go untouched before doctor.sh flags it as stalled and in need of human attention.",
           "default": 14
         }
       },
