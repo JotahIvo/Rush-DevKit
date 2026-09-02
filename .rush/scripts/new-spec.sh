@@ -22,14 +22,19 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: new-spec.sh <slug> [--title "..."] [--json]
+Usage: new-spec.sh <slug> [--title "..."] [--pitch] [--minimal] [--json]
 
 Creates specs/NNN-<slug>/ (NNN is the next sequential 3-digit id at the
-top level of specs/), copying pitch.md, prd.md and questions.md from
-.rush/templates/{pitch,prd,questions}-template.md (only the ones that
-exist there are copied), with {{FEATURE_ID}}, {{FEATURE_TITLE}} and
-{{DATE}} substituted. Registers the spec in .rush/state.json
-(current_spec, specs[]).
+top level of specs/), copying prd.md and questions.md from
+.rush/templates/{prd,questions}-template.md (only the ones that exist
+there are copied), with {{SPEC_ID}}/{{FEATURE_ID}},
+{{SPEC_TITLE}}/{{FEATURE_TITLE}} and {{DATE}} substituted. Registers the
+spec in .rush/state.json (current_spec, specs[]).
+
+pitch.md is NOT created by default: the pitch is an optional pre-step for
+an idea that is still one sentence long, and an unfilled pitch template
+sitting in every spec is just a placeholder violation waiting to be
+reported. Pass --pitch (which /rush-pitch does) to seed it.
 
 Deliverable work does NOT go here directly: once the spec exists, split
 it into features with new-feature.sh <spec-id> <feature-slug>, which
@@ -45,6 +50,13 @@ to point at it, since re-running this is how you switch the active spec.
                 '-') if not already in that shape.
   --title "..." Human title for the spec. Defaults to the slug with
                 hyphens turned into spaces and each word capitalised.
+  --pitch       Also seed pitch.md from pitch-template.md. Only /rush-pitch
+                needs this; the PRD is the flow's real entry point.
+  --minimal     Seed only questions.md — no prd.md. For the M-scope path
+                (/rush-quick), which needs a numbered spec to nest its one
+                feature under but deliberately skips the product layer. An
+                unfilled prd.md left behind by that path is a placeholder
+                violation nobody will ever resolve.
   --json        Print a single JSON object on stdout, nothing else.
   -h, --help    Show this help.
 
@@ -55,11 +67,15 @@ EOF
 json_mode="false"
 title_arg=""
 title_given="false"
+with_pitch="false"
+minimal="false"
 slug_raw=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --json) json_mode="true"; shift ;;
+    --pitch) with_pitch="true"; shift ;;
+    --minimal) minimal="true"; shift ;;
     --title)
       [ "$#" -ge 2 ] || { echo "new-spec.sh: --title requires a value" >&2; exit 2; }
       title_arg="$2"; title_given="true"; shift 2 ;;
@@ -96,7 +112,9 @@ trap 'rm -f "$result_file" "$py_src"' EXIT
 cat > "$py_src" <<'PYEOF'
 import json, os, re, sys
 
-root, slug_raw, title_arg, title_given, date_str = sys.argv[1:6]
+root, slug_raw, title_arg, title_given, date_str, with_pitch_arg, minimal_arg = sys.argv[1:8]
+with_pitch = with_pitch_arg == "true"
+minimal = minimal_arg == "true"
 title_given = title_given == "true"
 
 slug = re.sub(r"[^a-z0-9-]+", "-", slug_raw.strip().lower())
@@ -151,17 +169,22 @@ os.makedirs(spec_dir, exist_ok=True)
 created = []
 if not already_existed:
     templates_dir = os.path.join(root, ".rush", "templates")
-    template_map = [
-        ("pitch-template.md", "pitch.md"),
-        ("prd-template.md", "prd.md"),
-        ("questions-template.md", "questions.md"),
-    ]
+    template_map = [("questions-template.md", "questions.md")]
+    if not minimal:
+        template_map.insert(0, ("prd-template.md", "prd.md"))
+    if with_pitch:
+        template_map.insert(0, ("pitch-template.md", "pitch.md"))
     for template_name, dest_name in template_map:
         src = os.path.join(templates_dir, template_name)
         if not os.path.isfile(src):
             continue
         with open(src, encoding="utf-8") as f:
             text = f.read()
+        # A spec's own templates address it as SPEC_*; the older FEATURE_*
+        # names are still substituted so a project that customised a template
+        # before this rename keeps working.
+        text = text.replace("{{SPEC_ID}}", spec_id)
+        text = text.replace("{{SPEC_TITLE}}", title)
         text = text.replace("{{FEATURE_ID}}", spec_id)
         text = text.replace("{{FEATURE_TITLE}}", title)
         text = text.replace("{{DATE}}", date_str)
@@ -182,7 +205,7 @@ print(json.dumps(out, ensure_ascii=False))
 PYEOF
 
 set +e
-"$py" "$py_src" "$root" "$slug_raw" "$title_arg" "$title_given" "$date_str" > "$result_file"
+"$py" "$py_src" "$root" "$slug_raw" "$title_arg" "$title_given" "$date_str" "$with_pitch" "$minimal" > "$result_file"
 status=$?
 set -e
 

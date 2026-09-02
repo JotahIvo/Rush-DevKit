@@ -35,10 +35,10 @@ escrito**, com um bloco `json` machine-readable:
 ```json
 {
   "checks": [
-    { "name": "acceptance tests", "run": "npm test -- specs/007", "expect": "exit 0" },
-    { "name": "contracts valid", "run": ".rush/scripts/validate-contracts.sh 007", "expect": "exit 0" },
-    { "name": "fitness functions", "run": ".rush/scripts/fitness.sh 007", "expect": "exit 0" },
-    { "name": "no spec drift", "run": ".rush/scripts/check-as-built.sh 007", "expect": "exit 0" }
+    { "name": "acceptance tests", "run": "npm test -- specs/003-checkout/004-cart", "expect": "exit 0" },
+    { "name": "contracts valid", "run": ".rush/scripts/validate-contracts.sh 003-checkout/004-cart", "expect": "exit 0" },
+    { "name": "fitness functions", "run": ".rush/scripts/fitness.sh 003-checkout/004-cart", "expect": "exit 0" },
+    { "name": "no spec drift", "run": ".rush/scripts/check-as-built.sh 003-checkout/004-cart", "expect": "exit 0" }
   ],
   "human_gates": ["assisted review completed (/rush-review)"]
 }
@@ -55,7 +55,7 @@ aplicar — a skill é instruída a sinalizar essa lacuna em vez de deixá-la pa
 Quem executa esse contrato é `.rush/scripts/done-check.sh <feature-id> [--json] [--only <nome>]`:
 
 ```json
-{ "ok": false, "feature": "007-checkout",
+{ "ok": false, "feature": "003-checkout/004-cart",
   "checks": [{ "name": "acceptance tests", "status": "fail", "exit_code": 1,
                "duration_ms": 8421, "output_tail": "...últimas 40 linhas..." }],
   "human_gates": [{ "text": "review assistida concluída", "confirmed": false }],
@@ -76,7 +76,7 @@ journey, a sequência de features que ela cruza e **o teste que a prova**:
 
 ```json
 "journeys": [
-  { "name": "guest checkout", "features": ["001-auth", "004-cart"],
+  { "name": "guest checkout", "features": ["003-checkout/001-auth", "003-checkout/004-cart"],
     "test": "tests/journeys/guest-checkout.spec.ts" }
 ]
 ```
@@ -113,7 +113,7 @@ mesmo artefato lido por dois motores**:
    dentro de um caso de eval:
 
    ```json
-   { "type": "script", "run": ".rush/scripts/done-check.sh 007 --json", "expect": "exit 0" }
+   { "type": "script", "run": ".rush/scripts/done-check.sh 003-checkout/004-cart --json", "expect": "exit 0" }
    ```
 
    Isso significa que um `done-contract.md` real de uma feature já fechada pode virar, sem

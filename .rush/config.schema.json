@@ -328,66 +328,66 @@
     "budgets": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Maximum line counts for generated artifacts, enforced by validate-artifacts.sh. Density over completeness: an artifact that exceeds its budget signals the underlying feature or document is too big and should be split, not that the limit should be raised casually.",
+      "description": "Optional maximum line counts for generated artifacts, enforced by validate-artifacts.sh. Every one defaults to null, meaning NO limit: a document is as long as its content honestly requires, and a PRD or an architecture truncated to hit a number just moves the missing decisions into someone's head. Set a key only where a project genuinely wants a ceiling on one specific file — CLAUDE.md, which every agent reads in full on every run, is the usual case. A budget that fires should be read as 'this document is trying to be two documents', never as 'raise the number'.",
       "properties": {
         "pitch": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for pitch.md. Exceeding it means the pitch is trying to also be a PRD.",
-          "default": 60
+          "description": "Max lines for pitch.md. Exceeding it means the pitch is trying to also be a PRD. null (the default) means no limit.",
+          "default": null
         },
         "prd": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for prd.md. Exceeding it usually means requirements should be split across features.",
-          "default": 200
+          "description": "Max lines for prd.md. Exceeding it usually means requirements should be split across features. null (the default) means no limit — a spec-level PRD is meant to be complete.",
+          "default": null
         },
         "spec": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for a single feature's spec.md. Exceeding it is a signal the feature is too big and should be split (rush-spec is instructed to say so rather than silently overshoot).",
-          "default": 150
+          "description": "Max lines for a single feature's spec.md. Exceeding it is a signal the feature is too big and should be split (rush-spec is instructed to say so rather than silently overshoot). null (the default) means no limit.",
+          "default": null
         },
         "plan": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for a single feature's plan.md.",
-          "default": 100
+          "description": "Max lines for a single feature's plan.md. null (the default) means no limit.",
+          "default": null
         },
         "architecture": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for a spec's own, complete specs/<spec-id>/architecture.md.",
-          "default": 200
+          "description": "Max lines for a spec's own, complete specs/<spec-id>/architecture.md. null (the default) means no limit.",
+          "default": null
         },
         "architecture_summary": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for one spec's condensed digest inside the shared .rush/memory/architecture.md (not the whole file, which accumulates one digest per spec and has no single sensible ceiling). Must stay much smaller than the 'architecture' budget it points back to — it is a pointer, never a copy.",
-          "default": 25
+          "description": "Max lines for one spec's condensed digest inside the shared .rush/memory/architecture.md (not the whole file, which accumulates one digest per spec and has no single sensible ceiling). Must stay much smaller than the 'architecture' budget it points back to — it is a pointer, never a copy. null (the default) means no limit, though this one stays short by instruction in rush-architect regardless.",
+          "default": null
         },
         "claude_md": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for the project's CLAUDE.md. Kept tight so it stays something an agent actually reads in full every session rather than skims.",
-          "default": 60
+          "description": "Max lines for the project's CLAUDE.md. Kept tight so it stays something an agent actually reads in full every session rather than skims. null (the default) means no limit.",
+          "default": null
         },
         "constitution": {
-          "type": "integer",
+          "type": ["integer", "null"],
           "minimum": 1,
-          "description": "Max lines for .rush/memory/constitution.md, the binding project principles document.",
-          "default": 200
+          "description": "Max lines for .rush/memory/constitution.md, the binding project principles document. null (the default) means no limit.",
+          "default": null
         }
       },
       "default": {
-        "pitch": 60,
-        "prd": 200,
-        "spec": 150,
-        "plan": 100,
-        "architecture": 200,
-        "architecture_summary": 25,
-        "claude_md": 60,
-        "constitution": 200
+        "pitch": null,
+        "prd": null,
+        "spec": null,
+        "plan": null,
+        "architecture": null,
+        "architecture_summary": null,
+        "claude_md": null,
+        "constitution": null
       }
     },
     "verification": {

@@ -1,0 +1,30 @@
+{
+  "id": "kit-feature-cursor-follows-attention",
+  "agent": "kit",
+  "description": "Guards a real, repeatable wrong answer: .rush/state.json's current_feature used to be claimed by whichever feature was CREATED last, and nothing moved it afterwards. Creating a spec's features in one batch left the cursor on the final one, so implementing 001 through 00N reported the wrong feature the whole way and only agreed with reality on the last. The cursor now follows attention, not creation: new-feature.sh --no-activate leaves it alone, and set-current.sh is what moves it.",
+  "given": {
+    "cwd": ".",
+    "scenario": "The graders build a throwaway project under mktemp -d from the kit's own scripts and templates, create three features in one batch, then claim and move the cursor. Nothing is written inside the repository, and the temp directory is removed afterwards."
+  },
+  "graders": [
+    {
+      "type": "file_exists",
+      "path": ".rush/scripts/set-current.sh"
+    },
+    {
+      "type": "script",
+      "run": "d=\"$(mktemp -d)\" && mkdir -p \"$d/.rush\" && cp -R .rush/scripts \"$d/.rush/\" && cp -R .rush/templates \"$d/.rush/\" && cp .rush/config.default.json \"$d/.rush/config.json\" && cd \"$d\" && chmod +x .rush/scripts/*.sh && .rush/scripts/new-spec.sh loja --json >/dev/null && for f in auth catalogo carrinho; do .rush/scripts/new-feature.sh 001 \"$f\" --no-activate --json >/dev/null; done && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_batch=['+s.get('current_feature','')+']')\" && .rush/scripts/set-current.sh --feature 001-auth --json >/dev/null && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_claim=['+s.get('current_feature','')+']')\" && .rush/scripts/set-current.sh --feature 003-carrinho --json >/dev/null && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_move=['+s.get('current_feature','')+'] spec=['+s.get('current_spec','')+']')\" ; rm -rf \"$d\"",
+      "expect": "contains: after_batch=[]"
+    },
+    {
+      "type": "script",
+      "run": "d=\"$(mktemp -d)\" && mkdir -p \"$d/.rush\" && cp -R .rush/scripts \"$d/.rush/\" && cp -R .rush/templates \"$d/.rush/\" && cp .rush/config.default.json \"$d/.rush/config.json\" && cd \"$d\" && chmod +x .rush/scripts/*.sh && .rush/scripts/new-spec.sh loja --json >/dev/null && for f in auth catalogo carrinho; do .rush/scripts/new-feature.sh 001 \"$f\" --no-activate --json >/dev/null; done && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_batch=['+s.get('current_feature','')+']')\" && .rush/scripts/set-current.sh --feature 001-auth --json >/dev/null && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_claim=['+s.get('current_feature','')+']')\" && .rush/scripts/set-current.sh --feature 003-carrinho --json >/dev/null && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_move=['+s.get('current_feature','')+'] spec=['+s.get('current_spec','')+']')\" ; rm -rf \"$d\"",
+      "expect": "contains: after_claim=[001-auth]"
+    },
+    {
+      "type": "script",
+      "run": "d=\"$(mktemp -d)\" && mkdir -p \"$d/.rush\" && cp -R .rush/scripts \"$d/.rush/\" && cp -R .rush/templates \"$d/.rush/\" && cp .rush/config.default.json \"$d/.rush/config.json\" && cd \"$d\" && chmod +x .rush/scripts/*.sh && .rush/scripts/new-spec.sh loja --json >/dev/null && for f in auth catalogo carrinho; do .rush/scripts/new-feature.sh 001 \"$f\" --no-activate --json >/dev/null; done && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_batch=['+s.get('current_feature','')+']')\" && .rush/scripts/set-current.sh --feature 001-auth --json >/dev/null && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_claim=['+s.get('current_feature','')+']')\" && .rush/scripts/set-current.sh --feature 003-carrinho --json >/dev/null && python3 -c \"import json;s=json.load(open('.rush/state.json'));print('after_move=['+s.get('current_feature','')+'] spec=['+s.get('current_spec','')+']')\" ; rm -rf \"$d\"",
+      "expect": "contains: after_move=[003-carrinho] spec=[001-loja]"
+    }
+  ]
+}

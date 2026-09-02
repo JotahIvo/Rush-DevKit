@@ -1,4 +1,5 @@
-<!-- Budget: 100 lines. Density over completeness. -->
+<!-- Density over completeness: as long as the content honestly requires, never padded to look
+     thorough, never truncated to hit a number. -->
 <!-- PLAN artifact: the HOW of implementation. Never redefines behaviour — that's spec.md's
      job; if the plan needs behaviour the spec doesn't describe, fix the spec first, don't let
      this drift ahead of it. -->

@@ -79,19 +79,24 @@ Regras: path sensível, migration, dependência nova ou mudança de contrato ⇒
 Sem sinais e `file_count <= triage.max_files_for_S` ⇒ `S`. Caso contrário `M` com
 `needs_human_confirmation: true`.
 
-### `new-spec.sh <slug> [--title "..."] [--json]`
+### `new-spec.sh <slug> [--title "..."] [--pitch] [--minimal] [--json]`
 
-Cria `specs/NNN-<slug>/` (NNN sequencial de 3 dígitos, **nível pai**), copia `pitch.md`/`prd.md`/
+Cria `specs/NNN-<slug>/` (NNN sequencial de 3 dígitos, **nível pai**), copia `prd.md` e
 `questions.md` dos templates, registra o spec em `.rush/state.json` (`current_spec`, `specs[]`).
 Idempotente: slug existente retorna o diretório sem sobrescrever. Zera `current_feature` ao trocar
 de spec — uma feature de outro spec não deve continuar "ativa" depois da troca.
 
+`pitch.md` **não** é criado por padrão: o pitch é um passo opcional, e um template de pitch por
+preencher em todo spec é uma violação de placeholder esperando para ser reportada. `--pitch`
+(passado só pelo `/rush-pitch`) semeia. `--minimal` semeia **apenas** `questions.md`, sem
+`prd.md` — é o que o `/rush-quick` usa, já que o caminho M pula a camada de produto de propósito.
+
 ```json
 { "spec_id": "001-autenticacao-google", "dir": "specs/001-autenticacao-google",
-  "created": ["pitch.md", "prd.md", "questions.md"], "already_existed": false }
+  "created": ["prd.md", "questions.md"], "already_existed": false }
 ```
 
-### `new-feature.sh <spec-id> <slug> [--title "..."] [--json]`
+### `new-feature.sh <spec-id> <slug> [--title "..."] [--no-prd] [--no-activate] [--json]`
 
 Cria `specs/<spec-id>/MMM-<slug>/` (MMM sequencial de 3 dígitos, **aninhado dentro do spec**;
 cada spec numera suas próprias features a partir de 001 — dois specs diferentes podem ter cada
@@ -101,12 +106,38 @@ um seu próprio `001-...`, o que é esperado, não colisão). Copia templates de
 `<spec-id>` precisa já existir (via `new-spec.sh`); idempotente: slug existente dentro daquele
 spec retorna o diretório sem sobrescrever.
 
+`--no-activate` cria/resolve a feature **sem** apontar `current_feature` para ela (`current_spec`
+continua sendo atualizado). É obrigatório em criação em lote: sem isso o cursor fica em qualquer
+feature que por acaso foi criada por último, que nunca é a resposta para "em qual feature estou
+trabalhando". `--no-prd` pula o `prd.md` da feature — o caminho M (`/rush-quick`), que não tem PRD
+de spec para rastrear de volta.
+
 ```json
 { "spec_id": "001-autenticacao-google", "feature_id": "002-entrada-com-google",
   "dir": "specs/001-autenticacao-google/002-entrada-com-google",
-  "created": ["spec.md","plan.md","tasks.md","done-contract.md"],
+  "created": ["prd.md","spec.md","plan.md","tasks.md","done-contract.md"],
   "already_existed": false }
 ```
+
+### `set-current.sh [--spec <id>] [--feature <id>] [--clear-feature] [--json]`
+
+Move o cursor de `.rush/state.json` para o trabalho em andamento. Existe porque nada movia esse
+cursor depois da criação, o que produzia um erro repetível: criar as features de um spec em lote
+deixava `current_feature` na última criada, e implementar da 001 até a 00N mantinha o cursor na
+00N o caminho inteiro — só coincidindo com a realidade na última feature.
+
+Setar uma feature seta também o spec dela: os dois campos nunca podem discordar. Prefixo parcial é
+resolvido como em `rush_feature_dir` (ambiguidade entre specs vira erro nomeado, exit 2).
+`--clear-feature` deixa o spec ativo sem nenhuma feature.
+
+```json
+{ "current_spec": "001-autenticacao-google", "current_feature": "002-entrada-com-google",
+  "dir": "specs/001-autenticacao-google/002-entrada-com-google" }
+```
+
+Quem chama: `/rush-features` (passo final, apontando para a primeira feature da ordem topológica),
+`/rush-spec` e `/rush-implement` (ao entrar numa feature). Criação não reivindica mais o cursor de
+um lote.
 
 ### Esquema de `.rush/state.json`
 
@@ -129,20 +160,27 @@ Não editar à mão fora de um script — todo escritor passa por `rushlib.py js
 
 ### `validate-artifacts.sh [<feature-id>|--all] [--json]`
 
-Valida seções obrigatórias, **orçamentos de tamanho** e marcadores pendentes
-(`[NEEDS CLARIFICATION]`, `TODO`, placeholders `<...>` não preenchidos).
+Valida seções obrigatórias, marcadores pendentes (`[NEEDS CLARIFICATION]`, `TODO`, placeholders
+`{{...}}` e `<...>` não preenchidos) e — só onde o projeto pediu — orçamento de tamanho.
 
 ```json
-{ "ok": false, "checked": ["specs/007-checkout/spec.md"],
-  "violations": [{ "file": "specs/007-checkout/spec.md", "rule": "budget",
+{ "ok": false, "checked": ["specs/003-checkout/004-cart/spec.md"],
+  "violations": [{ "file": "specs/003-checkout/004-cart/spec.md", "rule": "budget",
                    "message": "182 linhas (máx 150)", "severity": "error" }] }
 ```
 
-Orçamentos (linhas): `pitch.md` 60 · `prd.md` 200 · `spec.md` 150 · `plan.md` 100 ·
-`architecture` (`specs/<spec-id>/architecture.md`, documento completo) 200 ·
-`architecture_summary` (resumo condensado em `.rush/memory/architecture.md`) 25 ·
-`CLAUDE.md` 60 · `constitution.md` 200.
-Sobrescrevíveis em `config.json → budgets`. Exit 1 se houver `severity: error`.
+**Nenhum artefato tem teto de linhas embutido**: todo default de `config.json → budgets` é `null`
+e a checagem de tamanho só roda onde o projeto setou a chave. Ver
+[`configuration.md`](../configuration.md#budgets).
+
+Seções obrigatórias por artefato: `spec.md` (behaviour, interfaces, data, edge cases, out of
+scope, assumptions) · `plan.md` (approach, files, order of work, risks, alternatives) ·
+`done-contract.md` (acceptance criteria, definition of done, acceptance criteria coverage) ·
+**PRD de spec** (overview, use cases, goals, out of scope, functional requirements, quality
+attributes, journeys, success metrics, assumptions) · **PRD de feature** (overview, requirements,
+traceability, out of scope, success criteria). Os dois PRDs compartilham o nome `prd.md` mas têm
+formas diferentes de propósito, então o checador recebe o *tipo* em vez de adivinhar pelo nome do
+arquivo. Exit 1 se houver `severity: error`.
 
 ### `validate-integration-map.sh [--json]`
 
@@ -153,10 +191,10 @@ Erros detectados: `consume_without_provider`, `duplicate_provider`, `dependency_
 
 ```json
 { "ok": false, "features": 8, "journeys": 3,
-  "violations": [{ "rule": "consume_without_provider", "feature": "004-cart",
+  "violations": [{ "rule": "consume_without_provider", "feature": "003-checkout/004-cart",
                    "detail": "consome endpoint 'POST /auth/login' que ninguém provê",
                    "severity": "error" }],
-  "order": ["001-auth","002-catalog","004-cart"] }
+  "order": ["003-checkout/001-auth","003-checkout/002-catalog","003-checkout/004-cart"] }
 ```
 
 `order` é a ordenação topológica (ordem segura de implementação). Exit 1 em erro.
@@ -177,8 +215,8 @@ Formato do bloco no `done-contract.md`:
 ```json
 {
   "checks": [
-    { "name": "acceptance tests", "run": "npm test -- specs/007", "expect": "exit 0" },
-    { "name": "contract honored", "run": ".rush/scripts/validate-contracts.sh 007", "expect": "exit 0" }
+    { "name": "acceptance tests", "run": "npm test -- specs/003-checkout/004-cart", "expect": "exit 0" },
+    { "name": "contract honored", "run": ".rush/scripts/validate-contracts.sh 003-checkout/004-cart", "expect": "exit 0" }
   ],
   "human_gates": ["review assistida concluída (/rush-review)"]
 }
@@ -188,7 +226,7 @@ Formato do bloco no `done-contract.md`:
 Timeout por check: `config.json → verification.check_timeout_seconds` (default 600).
 
 ```json
-{ "ok": false, "feature": "007-checkout",
+{ "ok": false, "feature": "003-checkout/004-cart",
   "checks": [{ "name": "acceptance tests", "status": "fail", "exit_code": 1,
                "duration_ms": 8421, "output_tail": "...últimas 40 linhas..." }],
   "human_gates": [{ "text": "review assistida concluída", "confirmed": false }],
@@ -210,7 +248,7 @@ pelos commits da feature vs arquivos previstos no plan; endpoints nos contratos 
 código; data do último commit de código vs último commit da spec.
 
 ```json
-{ "ok": false, "feature": "007-checkout",
+{ "ok": false, "feature": "003-checkout/004-cart",
   "drift": [{ "kind": "unplanned_file", "detail": "src/payments/webhook.ts não consta no plan.md" },
             { "kind": "stale_spec", "detail": "spec.md não é atualizada há 14 commits de código" }] }
 ```
@@ -241,6 +279,56 @@ arquivo ativo. `--restore <id>` reverte um item. `--dry-run` reporta sem escreve
 Ritual de início de sessão: feature atual, contagem de tasks por status, perguntas não respondidas
 no `questions.md` do spec atual, débitos abertos, working tree suja, últimos commits, última
 entrada do Session Log de `tasks.md` e o comando de teste baseline sugerido.
+
+### `session-context.sh new-path <slug> | latest | list [--json]`
+
+Dona do **nome e da busca** dos arquivos de contexto de sessão sob `.rush/memory/sessions/` —
+o conteúdo é da skill (`/rush-context-save` escreve, `/rush-context-load` lê); nenhuma das duas
+inventa nome de arquivo nem decide por inspeção qual é o mais recente.
+
+`new-path <slug>` devolve o caminho do próximo arquivo (`<YYYY-MM-DD>-<slug>.md`, com sufixo
+numérico se o nome já existir), cria o diretório e **não escreve arquivo nenhum**. `dir_existed`
+é `false` na primeira gravação do projeto e `gitignored` diz se o `.gitignore` já cobre o
+diretório — é o que permite a skill oferecer a entrada em vez de adicioná-la por conta própria.
+
+```json
+{ "path": ".rush/memory/sessions/2026-09-01-triagem.md", "slug": "triagem",
+  "date": "2026-09-01", "dir_existed": false, "gitignored": false }
+```
+
+`latest` devolve `{"found": false, "path": null, "count": 0}` e **sai 0** quando não há nada
+salvo — store vazio é resposta válida, não erro. `list` devolve `{"count": N, "sessions": [...]}`,
+mais recente primeiro (data do nome do arquivo, mtime desempata no mesmo dia).
+
+### `pr-commits.sh [<spec-id>] [--no-checks] [--json]`
+
+Base factual de `/rush-pr`: todo commit desde o que **adicionou** `specs/<spec-id>/` ao histórico
+até `HEAD`, e o status de done-check de cada feature do spec. Sem `<spec-id>`, usa o
+`current_spec`. A unidade de PR aqui é o spec, não a feature.
+
+```json
+{ "spec_id": "003-checkout", "spec_dir": "specs/003-checkout", "branch": "feat/003-checkout",
+  "range": { "from": "<sha>", "from_short": "d01b33f", "to": "<sha>", "rev_range": "<sha>^..HEAD" },
+  "commit_count": 3,
+  "commits": [{ "sha": "...", "short": "cb87f57", "date": "2026-09-01T16:46:36+00:00",
+                "author": "...", "subject": "feat(002): carrinho",
+                "files": ["src/cart.ts"], "merge": false }],
+  "features": [{ "id": "002-cart", "node_id": "003-checkout/002-cart",
+                 "dir": "specs/003-checkout/002-cart", "title": "Carrinho",
+                 "done_check_ok": false, "checks_passed": 0, "checks_failed": 1,
+                 "gates_pending": 0, "note": null }],
+  "summary": { "features": 2, "features_incomplete": 1, "commits": 3, "checks_run": true } }
+```
+
+`done_check_ok` é **tri-estado**: `true`, `false`, ou `null` quando o check não pôde rodar (sem
+`done-contract.md`, ou `--no-checks`) — `/rush-pr` trata `null` igual a `false`: assunto para
+levantar com o usuário, nunca para assumir. `--no-checks` pula `done-check.sh` (que roda a suíte
+de testes de verdade, e pode demorar o que a suíte demorar) e reporta `features_incomplete: null`.
+
+Exit: `0` todas as features completas (ou `--no-checks`), `1` pelo menos uma incompleta — check
+falhando ou human gate pendente, resultado válido e não erro —, `2` uso inválido, spec inexistente
+ou diretório fora de um repositório git. Um spec ainda não commitado devolve `range.from: null`,
+`commit_count: 0` e um campo `note` dizendo isso, em vez de inventar um intervalo.
 
 ### `doctor.sh [--json] [--fix-suggestions]`
 

@@ -1,0 +1,9 @@
+{
+  "git": {
+    "allow_commit": true,
+    "allow_push": false,
+    "commit_convention": "none",
+    "branch_pattern": ["feat/NNN-slug"]
+  },
+  "security": { "secret_scan_before_commit": false }
+}

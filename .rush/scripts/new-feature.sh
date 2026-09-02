@@ -13,7 +13,7 @@
 #
 # The spec itself must already exist: create it first with new-spec.sh.
 #
-# Usage: new-feature.sh <spec-id> <slug> [--title "..."] [--json]
+# Usage: new-feature.sh <spec-id> <slug> [--title "..."] [--no-prd] [--no-activate] [--json]
 #
 # Exit 0 ok (created or already existed), 2 usage/internal error.
 set -euo pipefail
@@ -22,7 +22,7 @@ set -euo pipefail
 
 usage() {
   cat <<'EOF'
-Usage: new-feature.sh <spec-id> <slug> [--title "..."] [--json]
+Usage: new-feature.sh <spec-id> <slug> [--title "..."] [--no-prd] [--no-activate] [--json]
 
 Creates specs/<spec-id>/MMM-<slug>/ (MMM is the next sequential 3-digit
 id *within that spec*; a different spec numbers its own features
@@ -52,6 +52,14 @@ active feature.
                 already in that shape.
   --title "..." Human title for the feature. Defaults to the slug with
                 hyphens turned into spaces and each word capitalised.
+  --no-prd      Do not seed prd.md. For the M-scope path (/rush-quick),
+                which has no spec-level PRD to trace a feature PRD back to —
+                spec.md plus done-contract.md carry that path entirely.
+  --no-activate Create/resolve the feature WITHOUT pointing
+                .rush/state.json -> current_feature at it. Use this when
+                creating several features in one pass (/rush-features), so
+                the cursor is not left on whichever one happened to be
+                created last. current_spec is still updated.
   --json        Print a single JSON object on stdout, nothing else.
   -h, --help    Show this help.
 
@@ -62,12 +70,16 @@ EOF
 json_mode="false"
 title_arg=""
 title_given="false"
+activate="true"
+with_prd="true"
 spec_id_raw=""
 slug_raw=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
     -h|--help) usage; exit 0 ;;
     --json) json_mode="true"; shift ;;
+    --no-activate) activate="false"; shift ;;
+    --no-prd) with_prd="false"; shift ;;
     --title)
       [ "$#" -ge 2 ] || { echo "new-feature.sh: --title requires a value" >&2; exit 2; }
       title_arg="$2"; title_given="true"; shift 2 ;;
@@ -104,7 +116,8 @@ trap 'rm -f "$result_file" "$py_src"' EXIT
 cat > "$py_src" <<'PYEOF'
 import json, os, re, sys
 
-root, spec_dir_rel, spec_id, slug_raw, title_arg, title_given, date_str = sys.argv[1:8]
+root, spec_dir_rel, spec_id, slug_raw, title_arg, title_given, date_str, with_prd_arg = sys.argv[1:9]
+with_prd = with_prd_arg == "true"
 title_given = title_given == "true"
 
 slug = re.sub(r"[^a-z0-9-]+", "-", slug_raw.strip().lower())
@@ -167,12 +180,15 @@ if not already_existed:
         ("tasks-template.md", "tasks.md"),
         ("done-contract-template.md", "done-contract.md"),
     ]
+    if with_prd:
+        template_map.insert(0, ("feature-prd-template.md", "prd.md"))
     for template_name, dest_name in template_map:
         src = os.path.join(templates_dir, template_name)
         if not os.path.isfile(src):
             continue
         with open(src, encoding="utf-8") as f:
             text = f.read()
+        text = text.replace("{{SPEC_ID}}", spec_id)
         text = text.replace("{{FEATURE_ID}}", feature_id)
         text = text.replace("{{FEATURE_TITLE}}", title)
         text = text.replace("{{DATE}}", date_str)
@@ -194,7 +210,7 @@ print(json.dumps(out, ensure_ascii=False))
 PYEOF
 
 set +e
-"$py" "$py_src" "$root" "$spec_dir_rel" "$spec_id" "$slug_raw" "$title_arg" "$title_given" "$date_str" > "$result_file"
+"$py" "$py_src" "$root" "$spec_dir_rel" "$spec_id" "$slug_raw" "$title_arg" "$title_given" "$date_str" "$with_prd" > "$result_file"
 status=$?
 set -e
 
@@ -215,7 +231,13 @@ state="$root/.rush/state.json"
 spec_id_json="$("$py" -c "import json,sys; print(json.dumps(sys.argv[1]))" "$spec_id")"
 feature_id_json="$("$py" -c "import json,sys; print(json.dumps(sys.argv[1]))" "$feature_id")"
 "$py" "$lib" json-set "$state" current_spec "$spec_id_json" || exit 2
-"$py" "$lib" json-set "$state" current_feature "$feature_id_json" || exit 2
+# The feature cursor moves only when this creation is meant to BE the active
+# work. Creating a spec's features in one batch leaves it where it was (or
+# unset), because "the last feature created" is never the answer to "which
+# feature am I working on" - see set-current.sh.
+if [ "$activate" = "true" ]; then
+  "$py" "$lib" json-set "$state" current_feature "$feature_id_json" || exit 2
+fi
 
 feature_record_file="$(mktemp)"
 trap 'rm -f "$result_file" "$py_src" "$feature_record_file"' EXIT
@@ -234,7 +256,11 @@ if [ "$json_mode" = "true" ]; then
   printf '%s\n' "$payload"
 else
   if [ "$already_existed" = "True" ]; then
-    rush_info "feature '$feature_id' already existed at $feature_dir (now the current feature, spec '$spec_id')"
+    if [ "$activate" = "true" ]; then
+      rush_info "feature '$feature_id' already existed at $feature_dir (now the current feature, spec '$spec_id')"
+    else
+      rush_info "feature '$feature_id' already existed at $feature_dir (spec '$spec_id'; current feature unchanged)"
+    fi
   else
     rush_ok "created $feature_dir"
     "$py" -c "

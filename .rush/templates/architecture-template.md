@@ -1,4 +1,5 @@
-<!-- Budget: 200 lines. Density over completeness. -->
+<!-- Density over completeness: as long as the content honestly requires, never padded to look
+     thorough, never truncated to hit a number. -->
 <!-- ARCHITECTURE artifact: structural HOW and trade-offs for the COMPLETE system this spec is
      building — not one section per feature. Never a step-by-step implementation recipe (that's
      plan.md) and never a redefinition of behaviour (that's spec.md). -->

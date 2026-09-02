@@ -1,0 +1,36 @@
+{
+  "id": "kit-branch-pattern-enforced",
+  "agent": "kit",
+  "description": "git.branch_pattern was declared in config.schema.json for two versions while no hook read it — a control the kit announced and did not apply, which is the exact failure mode principle 'a security rule never lives in prose alone' exists to prevent. guard-bash.sh now denies creating a branch whose name matches no declared pattern, and a commit made on a branch that matches none. This case also pins the off switch: with branch_pattern null, nothing is blocked.",
+  "given": {
+    "cwd": ".",
+    "scenario": "Two fixture projects: branch-pattern-project declares [\"feat/NNN-slug\"], branch-pattern-off-project declares null. The hook is fed the PreToolUse payload it would receive for each git command. CLAUDE_PROJECT_DIR is cleared so the hook resolves the fixture as the project root instead of the kit itself."
+  },
+  "graders": [
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/branch-pattern-project && printf '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git checkout -b feat/003-carrinho\"}}' | env CLAUDE_PROJECT_DIR= ../../../../.rush/hooks/guard-bash.sh",
+      "expect": "exit 0"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/branch-pattern-project && printf '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git checkout -b wip\"}}' | env CLAUDE_PROJECT_DIR= ../../../../.rush/hooks/guard-bash.sh",
+      "expect": "exit 2"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/branch-pattern-project && printf '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git switch -c hotfix\"}}' | env CLAUDE_PROJECT_DIR= ../../../../.rush/hooks/guard-bash.sh 2>&1",
+      "expect": "contains: git.branch_pattern"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/branch-pattern-project && printf '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git branch -d antiga\"}}' | env CLAUDE_PROJECT_DIR= ../../../../.rush/hooks/guard-bash.sh",
+      "expect": "exit 0"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/branch-pattern-off-project && printf '{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git checkout -b qualquer-nome\"}}' | env CLAUDE_PROJECT_DIR= ../../../../.rush/hooks/guard-bash.sh",
+      "expect": "exit 0"
+    }
+  ]
+}

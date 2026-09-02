@@ -44,15 +44,15 @@ Roteamento final:
 | Nível | Rota |
 |---|---|
 | **S** | Edição direta na sessão atual, seguida de `rush-verifier` e uma micro-revisão. Nenhum diretório de feature é criado. |
-| **M** | `/rush-quick "<pedido>"` — caminho enxuto, sem pitch/PRD/arquitetura. |
-| **L** | `/rush-pitch "<pedido>"` — início do fluxo completo. |
+| **M** | `/rush-quick "<pedido>"` — caminho enxuto, sem PRD nem arquitetura. |
+| **L** | `/rush-prd "<pedido>"` — início do fluxo completo. `/rush-pitch` antes dele só quando o pedido é uma frase solta sem problema declarado. |
 
 ## O fluxo L completo
 
 ```
-/rush-pitch  →  /rush-architect  →  /rush-prd  →  /rush-features  →  /rush-spec (por feature,
-                                                                       gera contratos junto —
-                                                                       ou /rush-spec-all p/ todas)
+(/rush-pitch)  →  /rush-prd  →  /rush-architect  →  /rush-features  →  /rush-spec (por feature,
+    opcional                                                            gera prd + contratos junto —
+                                                                        ou /rush-spec-all p/ todas)
                                                                             │
                                                               /rush-prototype (opcional)
                                                                             │
@@ -66,27 +66,39 @@ Roteamento final:
                                                                      /rush-review
                                                                             │
                                                                             ▼
+                                                                    /rush-pr (por spec)
+                                                                            │
+                                                                            ▼
                                                                      /rush-retro (opcional)
 ```
 
 Cada seta é uma fronteira de dono do artefato — nunca uma etapa arbitrária:
 
-1. **`/rush-pitch`** — problema, público, apetite, forma da solução, riscos, fora de escopo.
-   Nenhuma tecnologia, endpoint ou tela.
-2. **`/rush-architect`** — como o sistema inteiro do spec é estruturado: 2–3 candidatos com
-   trade-offs, um ADR, fitness functions executáveis. Roda pelas 13 disciplinas (atributos de
-   qualidade, boundaries, contratos, dados/migração, segurança, resiliência, performance,
-   observabilidade, dependências, integrações externas, custo e — se `ai_features` for `true` —
-   integração de IA). Grava a arquitetura completa em `specs/<spec-id>/architecture.md` e um
-   resumo condensado em `.rush/memory/architecture.md`.
-3. **`/rush-prd`** — consolida pitch + arquitetura em visão, metas, requisitos testáveis, critérios
-   de sucesso mensuráveis e as user journeys (que depois viram testes de jornada).
+1. **`/rush-pitch`** *(opcional)* — problema, público, apetite, forma da solução, riscos, fora de
+   escopo. Nenhuma tecnologia, endpoint ou tela. Existe para o caso em que a ideia ainda é uma
+   frase e o problema por trás dela não foi nomeado: moldar isso numa página, barata e
+   descartável, antes de alguém escrever requisito. Quando o problema já está claro, pule — o
+   `/rush-prd` faz a própria conversa de enquadramento e um pitch aí só adiciona documento.
+2. **`/rush-prd`** — **a porta de entrada real do fluxo L.** Define, completo, tudo que o spec vai
+   construir: problema, usuários e casos de uso, metas, fora de escopo, requisitos funcionais
+   numerados `FR-NNN` e testáveis, atributos de qualidade com alvo mensurável, domínio e dados,
+   user journeys (que viram testes de jornada), restrições, métricas de sucesso, riscos e
+   suposições. Não tem teto de tamanho: é o artefato que todo o resto cita de volta.
+3. **`/rush-architect`** — como o sistema inteiro do spec é estruturado, **a partir do PRD**: cada
+   linha da tabela de atributos de qualidade é um alvo que a estrutura tem que entregar. Produz
+   2–3 candidatos com trade-offs, um ADR e fitness functions executáveis. Roda pelas 13
+   disciplinas (atributos de qualidade, boundaries, contratos, dados/migração, segurança,
+   resiliência, performance, observabilidade, dependências, integrações externas, custo e — se
+   `ai_features` for `true` — integração de IA). Grava a arquitetura completa em
+   `specs/<spec-id>/architecture.md` e um resumo condensado em `.rush/memory/architecture.md`.
 4. **`/rush-features`** — divide o PRD em unidades de feature e produz `specs/integration-map.md`:
    o grafo `provides`/`consumes`, os contratos compartilhados com dono único, e as journeys — o
    mecanismo que impede uma feature de existir isolada. Ver [`integration.md`](./integration.md).
 5. **`/rush-spec`** (uma vez por feature, na ordem topológica que o integration map devolve, ou
-   `/rush-spec-all <spec-id>` para rodar o processo em todas de uma vez) — `spec.md`, `plan.md`,
-   `tasks.md`, `done-contract.md` (com os critérios de aceite embutidos); quando a feature expõe
+   `/rush-spec-all <spec-id>` para rodar o processo em todas de uma vez) — `prd.md` (a fatia de
+   produto daquela feature: quem serve, quais `FR-NNN` do PRD do spec ela entrega, o que deixa
+   explicitamente para uma feature irmã), `spec.md`, `plan.md`, `tasks.md`, `done-contract.md`
+   (com os critérios de aceite embutidos); quando a feature expõe
    uma interface, os contratos (OpenAPI/JSON Schema/AsyncAPI) são gerados no mesmo processo,
    congelados antes da implementação. `/rush-contracts` continua existindo, mas só para
    re-sincronizar um contrato depois de mudado, ou gerar um que ficou pendente.
@@ -96,8 +108,21 @@ Cada seta é uma fronteira de dono do artefato — nunca uma etapa arbitrária:
    integration map. Veredito sempre binário.
 8. **`/rush-implement`** — código, task por task, cada uma verificada pelo `rush-verifier`.
 9. **`/rush-review`** — revisão assistida e interativa antes do gate `feature_close`.
-10. **`/rush-retro`** (opcional) — falhas reais viram mecanismo permanente (eval case, fitness
+10. **`/rush-pr`** — escreve `specs/<spec-id>/pr.md`, a descrição do pull request do **spec
+    inteiro** (não de uma feature): todo commit desde a criação do spec e o status de done-check de
+    cada feature sob ele, no formato definido uma vez em `.rush/memory/pr-preferences.md`. Uma
+    feature com check falhando ou gate pendente aparece como incompleta, por mais que os commits
+    dela pareçam terminados.
+11. **`/rush-retro`** (opcional) — falhas reais viram mecanismo permanente (eval case, fitness
     function) ou regra registrada em `lessons.md`.
+
+### Por que o PRD vem antes da arquitetura
+
+A ordem inversa — arquitetar primeiro, escrever requisito depois — produz um PRD que já nasce
+justificando decisões estruturais tomadas antes de alguém enunciar o que o sistema precisa fazer.
+Com o PRD primeiro, a arquitetura recebe um alvo: cada atributo de qualidade da tabela é um
+compromisso com número, e uma linha que a arquitetura não consegue atender dentro do apetite vira
+um achado para levantar com o usuário, não um número que se afrouxa em silêncio.
 
 `/rush-new` (projeto novo) executa essencialmente os passos 1–7 em sequência automaticamente, com
 apenas dois pontos de aprovação humana no meio (a escolha de stack, e a fila de specs terminada) em
@@ -105,9 +130,11 @@ vez de um gate por feature.
 
 ## O caminho M (`/rush-quick`)
 
-`/rush-quick "<o que você quer mudar>"` produz um `spec.md` condensado (mesmo orçamento de 150
-linhas do spec completo, mas deliberadamente mais magro), `tasks.md` e um `done-contract.md`
-mínimo — sem pitch, sem PRD, sem arquitetura. É um caminho de primeira classe: a maioria das
+`/rush-quick "<o que você quer mudar>"` produz um `spec.md` condensado (mesmas seções obrigatórias
+do spec completo, deliberadamente mais magro em conteúdo), `tasks.md` e um `done-contract.md`
+mínimo — sem pitch, sem PRD, sem arquitetura. Ele chama `new-spec.sh --minimal` e
+`new-feature.sh --no-prd` justamente para não deixar template de PRD por preencher no caminho M,
+que ninguém voltaria para preencher. É um caminho de primeira classe: a maioria das
 mudanças num projeto maduro é M, e forçá-las pelo fluxo completo seria peso de processo errado.
 
 A regra mais importante desta skill é a **escalação imediata**: se em qualquer ponto — explorando o
@@ -127,6 +154,22 @@ Sem skill dedicada além do roteamento de `/rush`: edite diretamente na sessão,
 `rush-verifier` no final, e faça uma micro-revisão antes de considerar concluído. Nenhum diretório
 `specs/<id>/` é criado — o overhead de um processo completo não se justifica para 1–3 arquivos sem
 sinal de risco.
+
+## Fora da triagem: continuidade entre sessões
+
+`/rush-context-save` e `/rush-context-load` não pertencem a nenhum dos três caminhos — valem para
+qualquer um deles, porque o que eles resolvem é ortogonal ao tamanho da mudança: o que uma conversa
+descobriu e que **só existe nela**. `tasks.md` (Session Log), `questions.md`, `debt.md` e
+`done-contract.md` já sobrevivem à sessão por conta própria e são lidos pelo processo normal de
+toda skill; o que não sobrevive é o raciocínio, a abordagem que foi tentada e descartada, e a
+thread que estava no meio quando a sessão acabou.
+
+`/rush-context-save` grava exatamente isso em `.rush/memory/sessions/` (scratch local, não artefato
+de projeto — vai para o `.gitignore`), e `/rush-context-load` recapitula na sessão seguinte,
+checando antes se o estado do projeto mudou desde a gravação. A seção de maior valor é a de
+abordagens descartadas: uma decisão adotada costuma estar visível no código ou no artefato
+resultante; uma rejeitada é invisível, e sem registro a sessão nova repropõe exatamente o que já
+foi tentado.
 
 ## Onde ficam os gates humanos
 

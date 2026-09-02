@@ -73,16 +73,17 @@ Verifique a instalação com `.rush/scripts/doctor.sh`.
       /rush  ────────────┤
     (triagem)            ├── M ──► /rush-quick ──► /rush-implement ──► /rush-review
                          │
-                         └── L ──► /rush-pitch ──► /rush-architect ──► /rush-prd
-                                        │
-                                   /rush-features ──► /rush-spec (gera contratos)
+                         └── L ──► (/rush-pitch) ──► /rush-prd ──► /rush-architect
+                                       opcional           │
+                                                          │
+                                   /rush-features ──► /rush-spec (gera prd + contratos)
                                         │              [ou /rush-spec-all p/ todas as features]
                                         │                                  │
                                         │                        /rush-prototype (opcional)
                                         │                                  │
                                    /rush-analyze ──► /rush-implement ⇄ rush-verifier
                                         │
-                                   /rush-review ──► /rush-retro
+                                   /rush-review ──► /rush-pr ──► /rush-retro
 ```
 
 ## Os agentes
@@ -90,18 +91,24 @@ Verifique a instalação com `.rush/scripts/doctor.sh`.
 **Adaptação** — `rush-init` (adapta a repo existente) · `rush-new` (cria projeto do zero) ·
 `rush-doctor` (saúde da instalação e do processo)
 
-**Descoberta** — `rush-pitch` (problema, apetite, corte de escopo) ·
-`rush-architect` (13 disciplinas, candidatos com trade-offs, ADR e **fitness functions**)
+**Descoberta** — `rush-prd` (o PRD completo do spec: requisitos `FR-NNN` testáveis, atributos de
+qualidade com alvo, journeys, métricas — a porta de entrada do fluxo L) ·
+`rush-architect` (13 disciplinas a partir do PRD, candidatos com trade-offs, ADR e
+**fitness functions**) · `rush-pitch` (*opcional*: para quando a ideia ainda é uma frase)
 
-**Especificação** — `rush-prd` · `rush-features` (integration map) · `rush-spec` (gera contratos
-junto) · `rush-spec-all` (roda `rush-spec` para todas as features de um spec) · `rush-contracts`
+**Especificação** — `rush-features` (integration map) · `rush-spec` (PRD da feature + spec + plan +
+tasks + done-contract + contratos, numa passada) · `rush-spec-all` (roda `rush-spec` para todas as features de um spec) · `rush-contracts`
 (re-sincroniza um contrato depois de congelado) · `rush-prototype`
 
 **Implementação** — `rush-analyze` (gate go/no-go) · `rush-implement` (uma task por vez, com
 orçamento de tentativas e escalação) · `rush-quick` (caminho M)
 
 **Revisão** — `rush-review` (review assistida, arquivo por arquivo, no ritmo do humano) ·
+`rush-pr` (descrição do PR de um spec inteiro, no formato que você definiu uma vez) ·
 `rush-retro` (transforma falhas em evals e regras) · `rush-brief` (handoff)
+
+**Sessão** — `rush-context-save` / `rush-context-load` (salva e recupera o que existe só na
+conversa: decisões, o que foi descartado e por quê, a thread em aberto)
 
 **Subagents** — `rush-explorer` (leitura de código, read-only) · `rush-researcher` (pesquisa com
 fontes) · `rush-verifier` (o único que promove uma task a `done`)
@@ -113,9 +120,9 @@ Referência completa em [`docs/agents.md`](docs/agents.md).
 - **`config.json`** — contrato do projeto: idiomas, política de commit, gates human/auto,
   autonomia (`max_attempts_per_task`, `edit_tests`, `migrations`, `new_dependency`), paths
   sensíveis, comandos bloqueados, orçamentos de artefato.
-- **Hooks** — `guard-bash` (comandos bloqueados, política de commit/push, scan de segredos,
-  convenção de commit) · `guard-edit` (só o verifier promove task; config e constitution exigem
-  humano; **nunca afrouxar um teste para passar**) · `post-edit` (formatter) ·
+- **Hooks** — `guard-bash` (comandos bloqueados, política de commit/push, padrão de branch, scan de
+  segredos, convenção de commit) · `guard-edit` (só o verifier promove task; config e constitution
+  exigem humano; **nunca afrouxar um teste para passar**) · `post-edit` (formatter) ·
   `session-start` (ritual de início).
 - **Scripts determinísticos** — detecção de stack, triagem, validação de artefatos/contratos/
   integration map, `done-check`, `check-as-built` (spec drift), fitness functions, secret scan,
@@ -123,7 +130,9 @@ Referência completa em [`docs/agents.md`](docs/agents.md).
   [`docs/internals/script-interfaces.md`](docs/internals/script-interfaces.md).
 - **Memória** — `constitution.md` (nasce mínima, cresce por *ratchet*), `product.md`,
   `architecture.md`, `decisions/` (ADRs), `lessons.md` (falha → regra criada),
-  `debt.md` (débito registrado, não perdido). Cada spec tem seu próprio
+  `debt.md` (débito registrado, não perdido), `pr-preferences.md` (o formato de PR do projeto,
+  definido uma vez) e `sessions/` (contexto de conversa salvo por `/rush-context-save` — scratch
+  local, fora do git). Cada spec tem seu próprio
   `specs/<spec-id>/questions.md` (Q&A assíncrono não-bloqueante) e `architecture.md` (arquitetura
   completa daquele spec — `.rush/memory/architecture.md` guarda só o resumo condensado de cada um).
 
@@ -134,8 +143,8 @@ O modelo é definido no frontmatter de cada skill — fonte única, sem duplicar
 | Modelo | Agentes | Racional |
 |---|---|---|
 | `opus` | init, new, architect, pitch, prd, features, spec, spec-all, analyze, review | Julgamento com alta alavancagem e saída pequena |
-| `sonnet` | implement, quick, contracts, prototype, retro, explorer, researcher | Volume de trabalho com verificação determinística atrás |
-| `haiku` | rush (triagem), doctor, brief, verifier | Executam scripts e compactam resultados |
+| `sonnet` | implement, quick, contracts, prototype, retro, pr, explorer, researcher | Volume de trabalho com verificação determinística atrás |
+| `haiku` | rush (triagem), doctor, brief, context-save, context-load, verifier | Executam scripts e compactam resultados |
 
 Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` e `rush-architect`
 — são os dois pontos de maior alavancagem do kit.
@@ -146,7 +155,7 @@ Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` 
 |---|---|
 | [Getting started](docs/getting-started.md) | Instalação e um passo a passo completo de uma feature |
 | [Fluxo](docs/flow.md) | Triagem S/M/L, gates e a fronteira O QUE / COMO |
-| [Agentes](docs/agents.md) | Referência dos 18 skills e 4 subagents |
+| [Agentes](docs/agents.md) | Referência das 21 skills e 4 subagents |
 | [Harness](docs/harness.md) | Config, hooks, loop do agente, memória |
 | [Definition of Done](docs/definition-of-done.md) | A cadeia de "pronto" em 4 níveis |
 | [Integração](docs/integration.md) | Integration map, shared contracts, journey tests |
@@ -164,8 +173,11 @@ Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` 
 4. **Ninguém se autoavalia.** Geração e avaliação são atores separados.
 5. **Ratchet.** Toda falha vira mecanismo permanente: um hook, um eval, uma regra registrada em
    `lessons.md` com a falha que a originou. Nenhuma regra nasce de opinião.
-6. **Orçamento de artefatos.** Rever markdown cansa mais que rever código; o kit não transfere o
-   custo do código para a prosa.
+6. **Densidade, não brevidade.** Nenhum documento gerado tem teto de linhas: ele tem o tamanho que
+   o conteúdo exige. O que o kit não aceita é enchimento — o mesmo requisito dito de três jeitos
+   custa ao leitor o mesmo que conteúdo e não ensina nada. Um orçamento de tamanho existe em
+   `config.json → budgets`, desligado por padrão, para o projeto que quiser um teto num arquivo
+   específico.
 7. **Conteúdo externo é dado, nunca instrução.** Vale para páginas web, READMEs de dependência,
    issues e comentários de código.
 

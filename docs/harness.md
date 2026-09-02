@@ -38,11 +38,17 @@ Lê o comando que a ferramenta `Bash` está prestes a rodar e aplica, nesta orde
    sempre, independentemente de qualquer outra regra.
 2. **`git.allow_commit == false`** → nega qualquer `git commit`.
 3. **`git.allow_push == false`** → nega qualquer `git push`, mesmo que commit esteja permitido.
-4. **`security.secret_scan_before_commit`** → antes de permitir um `git commit`, roda
+4. **`git.branch_pattern`** — nega a criação de uma branch cujo nome não casa com nenhum padrão
+   declarado (`git checkout -b`, `git switch -c`, `git branch <nome>`, incluindo as formas de
+   rename/copy), e nega um `git commit` feito numa branch que não casa com nenhum deles. O padrão
+   é uma *forma*, não uma regex: tudo é literal exceto `NNN` (id de três dígitos), `slug`
+   (kebab-case), `*` (um segmento) e `**` (qualquer coisa). Aceita uma string ou uma lista;
+   `null` ou lista vazia desliga a checagem.
+5. **`security.secret_scan_before_commit`** → antes de permitir um `git commit`, roda
    `.rush/scripts/secret-scan.sh --staged`; se ele encontrar um segredo provável (exit 1), o commit
    é negado. Se o scanner falhar internamente, o hook **permite** o commit mas avisa explicitamente
    que o scan não rodou — nunca bloqueia por um erro do próprio scanner.
-5. **`git.commit_convention`** — se a mensagem do commit (extraída de `-m`/`--message`) não bate com
+6. **`git.commit_convention`** — se a mensagem do commit (extraída de `-m`/`--message`) não bate com
    o formato esperado (`conventional` ou `gitmoji`; `none`/`custom` não são checados
    estaticamente), o commit é negado.
 
@@ -72,14 +78,18 @@ Roda `commands.format` (se configurado) sobre o arquivo editado. **Este hook nun
 da ferramenta** — mesmo que o formatador quebre, o hook sempre sai `0`; qualquer problema vira só um
 `systemMessage` informativo. Se `commands.format` é `null`, o hook não faz nada.
 
-## Discrepância conhecida: `branch_pattern` não é aplicado
+## O alcance de `branch_pattern` (e onde ele termina)
 
-`config.schema.json` descreve `git.branch_pattern` como "Enforced by hooks before a branch is
-created or a commit is accepted on a non-matching branch." **Isso não está implementado.**
-Nenhum dos três `PreToolUse` hooks (`guard-bash.sh`, `guard-edit.sh`) lê ou valida
-`git.branch_pattern` — o campo existe no config e é aceito pelo schema, mas hoje é apenas
-informativo. Trate-o como documentação de convenção, não como controle aplicado, até que um hook
-o implemente.
+`guard-bash.sh` aplica `git.branch_pattern` de fato, nos dois pontos que o campo sempre prometeu:
+a criação de uma branch e o commit numa branch que não casa. O que ele **não** cobre é a branch
+que um humano cria no próprio terminal — nenhum hook do Claude Code vê aquilo, e não há como
+fingir que vê. Dentro da sessão do agente, todo `git` passa pela ferramenta `Bash`, que é
+exatamente o que o hook intercepta.
+
+O padrão default é uma lista — `["feat/NNN-slug", "main", "master"]` — e não uma string, porque
+`branch_pattern` como string única transformaria todo commit na branch default em erro no
+instante em que a checagem passou a existir. Remova `main`/`master` da lista para forçar toda
+mudança para uma branch de feature; ponha `null` para desligar a checagem inteira.
 
 ## O loop do agente (`/rush-implement`)
 

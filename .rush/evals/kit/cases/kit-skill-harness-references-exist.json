@@ -1,0 +1,46 @@
+{
+  "id": "kit-skill-harness-references-exist",
+  "agent": "kit",
+  "description": "Guards a real failure: /rush-pr, /rush-context-save and /rush-context-load shipped referencing .rush/scripts/pr-commits.sh, .rush/scripts/session-context.sh and three templates that had never been written. Nothing caught it — each SKILL.md is internally consistent, and the missing file only surfaces when a user invokes the command and the skill stops at its own guardrail 2 ('if a script exits 2, stop and report'). doctor.sh's skill_dependencies check now resolves every .rush/scripts/*.sh and .rush/templates/*.md path a skill or subagent names.",
+  "given": {
+    "cwd": ".",
+    "scenario": "The kit as shipped, plus the fixture .rush/evals/fixtures/skill-missing-script/, whose one skill references a script that does not exist."
+  },
+  "graders": [
+    {
+      "type": "script",
+      "run": ".rush/scripts/doctor.sh --json",
+      "expect": "contains: \"name\": \"skill_dependencies\""
+    },
+    {
+      "type": "script",
+      "run": ".rush/scripts/doctor.sh --json | grep -A3 skill_dependencies",
+      "expect": "not_contains: reference harness files that do not exist"
+    },
+    {
+      "type": "file_exists",
+      "path": ".rush/scripts/pr-commits.sh"
+    },
+    {
+      "type": "file_exists",
+      "path": ".rush/scripts/session-context.sh"
+    },
+    {
+      "type": "file_exists",
+      "path": ".rush/templates/pr-template.md"
+    },
+    {
+      "type": "file_exists",
+      "path": ".rush/templates/pr-preferences-template.md"
+    },
+    {
+      "type": "file_exists",
+      "path": ".rush/templates/session-context-template.md"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/skill-missing-script && ../../../../.rush/scripts/doctor.sh --json",
+      "expect": "contains: does-not-exist.sh"
+    }
+  ]
+}

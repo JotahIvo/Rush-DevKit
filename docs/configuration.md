@@ -34,7 +34,7 @@ forma do arquivo — mudar só o número não muda comportamento.
 | `git.allow_commit` | boolean | `true` | Lido por `guard-bash.sh`. Com `false`, **nenhum** agente pode rodar `git commit`, sob nenhuma circunstância — eles deixam a mudança em staged e reportam; o commit vira ato humano. |
 | `git.allow_push` | boolean | `false` | Lido por `guard-bash.sh`. Com `false` (padrão seguro), nenhum `git push` é permitido mesmo com `allow_commit=true` — é uma permissão deliberadamente separada e de risco maior. Só ative em ambientes onde push autônomo é risco aceito. |
 | `git.commit_convention` | `"conventional"` \| `"gitmoji"` \| `"none"` \| `"custom"` | `"conventional"` | Lido por `guard-bash.sh`, que valida a mensagem de todo `git commit -m`/`--message` contra o formato esperado e **nega** o commit se não bater. `"none"`/`"custom"` não são checados estaticamente pelo hook (para `"custom"`, a convenção real precisa estar documentada em `constitution.md`/`CLAUDE.md`, que os agentes leem antes de compor a mensagem). `detect-stack.sh` reporta separadamente a convenção **realmente observada** no histórico, para você conferir se o valor declarado bate com a realidade. |
-| `git.branch_pattern` | string (ex. `"feat/NNN-slug"`) | `"feat/NNN-slug"` | **Declarado no schema como aplicado por hook, mas isso não está implementado hoje** — nenhum hook lê ou valida esta chave. Veja [`harness.md`](./harness.md#discrepância-conhecida-branch_pattern-não-é-aplicado). Trate como documentação de convenção até que a aplicação exista de fato. |
+| `git.branch_pattern` | string, lista de strings, ou `null` | `["feat/NNN-slug", "main", "master"]` | Lido por `guard-bash.sh`, que **nega** criar uma branch cujo nome não casa com nenhum padrão da lista (`git checkout -b`, `git switch -c`, `git branch <nome>`) e **nega** um `git commit` feito numa branch que não casa com nenhum. O padrão é uma forma, não uma regex: literal exceto `NNN` (três dígitos), `slug` (kebab-case), `*` (um segmento) e `**` (qualquer coisa). O default inclui `main`/`master` para não quebrar commit na branch default — tire-os para forçar toda mudança para uma branch de feature. `null` ou lista vazia desliga a checagem. Branch criada pelo humano no terminal não passa por hook nenhum e não é interceptada. Veja [`harness.md`](./harness.md#o-alcance-de-branch_pattern-e-onde-ele-termina). |
 
 ## `code`
 
@@ -97,19 +97,26 @@ que a configuração pede.
 
 ## `budgets`
 
-Lidos por `.rush/scripts/validate-artifacts.sh`. Todos são contagens máximas de linha; estourar o
-orçamento é sinal de que o artefato/feature deveria ser dividido, não que o limite deveria subir
-casualmente.
+Lidos por `.rush/scripts/validate-artifacts.sh`. **Todos nascem `null`, ou seja: nenhum documento
+gerado tem teto de linhas.** Um documento tem o tamanho que o conteúdo dele honestamente exige, e
+um PRD ou uma arquitetura cortados para caber num número só empurram a decisão que faltou para a
+cabeça de alguém.
+
+O mecanismo continua existindo porque um projeto pode genuinamente querer um teto num arquivo
+específico — o caso típico é o `CLAUDE.md`, que todo agente lê inteiro em toda sessão. Setar a
+chave reativa a checagem para aquele arquivo. Quando um orçamento assim dispara, a leitura certa é
+"este documento está tentando ser dois", nunca "sobe o número".
 
 | Chave | Padrão | Artefato |
 |---|---|---|
-| `budgets.pitch` | 60 | `pitch.md` |
-| `budgets.prd` | 200 | `prd.md` |
-| `budgets.spec` | 150 | `spec.md` de uma feature |
-| `budgets.plan` | 100 | `plan.md` de uma feature |
-| `budgets.architecture` | 100 | seção por-feature de `architecture.md` (não o arquivo inteiro) |
-| `budgets.claude_md` | 60 | `CLAUDE.md` do projeto |
-| `budgets.constitution` | 200 | `.rush/memory/constitution.md` |
+| `budgets.pitch` | `null` | `pitch.md` |
+| `budgets.prd` | `null` | `prd.md` (tanto o do spec quanto o de uma feature) |
+| `budgets.spec` | `null` | `spec.md` de uma feature |
+| `budgets.plan` | `null` | `plan.md` de uma feature |
+| `budgets.architecture` | `null` | `specs/<spec-id>/architecture.md` (documento completo) |
+| `budgets.architecture_summary` | `null` | o resumo por-spec dentro de `.rush/memory/architecture.md` |
+| `budgets.claude_md` | `null` | `CLAUDE.md` do projeto |
+| `budgets.constitution` | `null` | `.rush/memory/constitution.md` |
 
 ## `verification`
 

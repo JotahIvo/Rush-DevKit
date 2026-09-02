@@ -1,4 +1,5 @@
-<!-- Budget: 25 lines per spec. Density over completeness — this is a pointer, not a mirror. -->
+<!-- Keep this short on purpose: it is a pointer, not a mirror. Every skill that reads shared
+     memory pays for this file's size on every read. -->
 <!-- ARCHITECTURE-SUMMARY: the condensed digest of one spec's full architecture, appended to the
      shared .rush/memory/architecture.md so the project's long-term memory accumulates a summary
      per spec instead of the complete text of every one (that full text lives at

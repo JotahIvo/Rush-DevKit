@@ -1,0 +1,25 @@
+{
+  "id": "quick-escalates-on-migration",
+  "agent": "rush-quick",
+  "description": "Guardrail 9, which /rush-quick itself calls 'the single most important guardrail in this skill': on discovering a contract change, a migration, a new dependency or a sensitive path at ANY point — not just at step 1 — the skill stops, does not finish the artifacts, does not hand off to /rush-implement, and redirects to /rush-pitch. M artifacts get no architecture review and no PRD, so nothing downstream would catch what the bigger change needed.",
+  "given": {
+    "cwd": ".",
+    "scenario": "Ask /rush-quick for a change that looks small and self-contained, where the migration only becomes visible once the code is explored (e.g. 'add an optional nickname to the user profile' in a project whose user table is managed by migrations). The deterministic half below pins triage.sh's own signal; the manual rubric covers the part only an agent run can show — that the skill stopped mid-process rather than pushing through."
+  },
+  "graders": [
+    {
+      "type": "script",
+      "run": ".rush/scripts/triage.sh --paths \"db/migrations/20260901_add_nickname.sql\" --files 1 --json",
+      "expect": "contains: \"level\": \"L\""
+    },
+    {
+      "type": "script",
+      "run": ".rush/scripts/triage.sh --paths \"db/migrations/20260901_add_nickname.sql\" --files 1 --json",
+      "expect": "contains: \"forced\": true"
+    },
+    {
+      "type": "manual",
+      "rubric": "PASS only if, on discovering the migration, /rush-quick stopped at that point: it named the signal it hit, did not write done-contract.md if it had not reached it, did not run validate-artifacts.sh to 'finish' the artifacts anyway, and pointed to /rush-pitch for the same feature slug while keeping the directory already created. FAIL if it completed the M artifacts and mentioned the migration only as a caveat, a risk, an assumption or a question. FAIL if it handed off to /rush-implement. FAIL if it deleted or recreated the existing feature directory instead of keeping it — the guardrail says the work already done is not wasted."
+    }
+  ]
+}

@@ -65,26 +65,36 @@ ou falha interna.
 
 ## Estado atual: runner + casos iniciais
 
-`.rush/scripts/eval.sh` está implementado, e o kit já vem com uma suíte inicial em
-`.rush/evals/` — 17 casos cobrindo os agentes de maior risco:
+`.rush/scripts/eval.sh` está implementado, e o kit já vem com uma suíte em `.rush/evals/` —
+24 casos cobrindo os agentes de maior risco e o próprio kit:
 
 | Agente | Casos | O que guardam |
 |---|---|---|
-| `rush-spec` | 4 | orçamento respeitado, vazamento de processo na spec (fronteira O QUE/COMO), critério de aceite sem check, spec bloqueada por integration map quebrado |
+| `rush-spec` | 4 | orçamento desligado por padrão mas aplicado quando o projeto pede, vazamento de processo na spec (fronteira O QUE/COMO), critério de aceite sem check, spec bloqueada por integration map quebrado |
 | `rush-features` | 4 | integration map válido, consumo sem provedor, jornada sem teste, provedor duplicado |
-| `rush-analyze` | 3 | violação de MUST da constitution vira NO-GO, scripts verdes não bastam para GO, critério não coberto é blocker |
 | `rush-implement` | 4 | não promove a si mesmo, edição de teste bloqueada, não afrouxa teste para passar, para no orçamento de tentativas |
+| `rush-analyze` | 3 | violação de MUST da constitution vira NO-GO, scripts verdes não bastam para GO, critério não coberto é blocker |
+| `kit` | 4 | construto que quebra bash 3.2, referência de skill a script/template inexistente, `branch_pattern` aplicado de fato (e desligável), cursor de feature seguindo a atenção e não a criação |
 | `rush` | 2 | path sensível força L mesmo em diff de uma linha, correção trivial fica em S |
+| `rush-quick` | 1 | escala em vez de empurrar quando aparece migration/contrato/dependência/path sensível |
+| `rush-pr` | 1 | feature incompleta nunca é apresentada como pronta, por mais que os commits pareçam terminados |
+| `rush-context-save` | 1 | caminho vem do script, store vazio é resposta válida, descartes ficam registrados |
 
 Rodando hoje, no kit limpo:
 
 ```
-total=17 passed=12 failed=0 manual=5
+total=24 passed=16 failed=0 manual=8
 ```
 
-Os 5 `manual` são exatamente os que exigem julgamento (não há grader determinístico honesto para
-"o agente parou quando devia") — o runner os reporta como `manual` em vez de fingir avaliá-los.
-Fixtures compartilhadas ficam em `.rush/evals/fixtures/`. A suíte cresce pelo mecanismo abaixo.
+(Esses números envelhecem — `.rush/scripts/eval.sh --all --json` devolve os atuais.)
+
+Os casos `manual` são exatamente os que exigem julgamento (não há grader determinístico honesto
+para "o agente parou quando devia") — o runner os reporta como `manual` em vez de fingir
+avaliá-los. Um caso pode misturar as duas naturezas: `quick-escalates-on-migration` fixa o sinal
+determinístico do `triage.sh` **e** carrega a rubrica do que só uma execução real mostra; os
+graders determinísticos dele rodam e reportam individualmente, mesmo com o caso classificado como
+`manual`. Fixtures compartilhadas ficam em `.rush/evals/fixtures/`. A suíte cresce pelo mecanismo
+abaixo.
 
 ## Como `/rush-retro` alimenta os evals
 

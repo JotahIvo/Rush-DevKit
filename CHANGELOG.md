@@ -1,5 +1,156 @@
 # Changelog
 
+## 0.6.0
+
+Quatro mudanças de fluxo, todas vindas de usar o kit num projeto de verdade: teto de linhas
+estrangulando documento que precisava ser completo, pitch tratado como obrigatório quando quase
+nunca é, PRD chegando depois da arquitetura que deveria orientar, e um cursor de feature que
+apontava para a feature errada o caminho inteiro.
+
+### Changed
+
+- **Nenhum documento gerado tem mais teto de linhas.** Todo default de `config.json → budgets`
+  passou a ser `null`, e `validate-artifacts.sh` não carrega mais limite embutido nenhum: um
+  documento tem o tamanho que o conteúdo dele honestamente exige. O mecanismo continua existindo
+  para o projeto que quiser um teto num arquivo específico (o caso típico é o `CLAUDE.md`, lido
+  inteiro por todo agente em toda sessão) — basta setar a chave. O guardrail universal 4 de toda
+  skill foi reescrito no mesmo espírito: densidade sobre completude, sem enchimento e sem corte
+  para caber num número.
+- **O PRD passou a ser a porta de entrada do fluxo L, e vem antes da arquitetura.** A ordem era
+  pitch → arquitetura → PRD; agora é (pitch opcional) → **PRD → arquitetura** → features → spec.
+  Arquitetar antes de enunciar requisito produz um PRD que já nasce justificando decisão
+  estrutural tomada antes de alguém dizer o que o sistema precisa fazer. Com o PRD primeiro, a
+  arquitetura recebe alvo: cada linha da tabela de atributos de qualidade é um compromisso com
+  número, e uma linha que a arquitetura não atende dentro do apetite vira achado para levantar,
+  não número que se afrouxa em silêncio. `/rush` roteia L para `/rush-prd`; `/rush-architect`
+  agora lê o PRD como sua entrada principal; `/rush-new` reordenou seus passos.
+- **`/rush-pitch` é oficialmente opcional.** Ele existe para o caso em que a ideia ainda é uma
+  frase e o problema por trás dela não foi nomeado — moldar isso numa página barata antes de
+  alguém escrever requisito. Quando o problema já está claro, `/rush-prd` faz a própria conversa
+  de enquadramento e o pitch só adicionaria documento. Consequência mecânica: `new-spec.sh` não
+  semeia mais `pitch.md` por padrão (só com `--pitch`, que apenas `/rush-pitch` passa), o que
+  também elimina um template por preencher em todo spec que `validate-artifacts.sh` reportaria
+  para sempre.
+- **O PRD do spec foi reescrito para ser completo.** Novo `prd-template.md`, destilado das
+  práticas de PRD para agentes de código: problema e visão, usuários e casos de uso, metas, fora
+  de escopo com motivo, **requisitos funcionais numerados `FR-NNN` e testáveis** (nas formas EARS
+  — `WHEN … THE SYSTEM SHALL …`), atributos de qualidade com alvo mensurável e condição, domínio
+  e dados no nível conceitual, journeys com caminho de falha e os `FR-NNN` que cobrem, restrições
+  com fonte, métricas de sucesso medidas no usuário (não no sistema), riscos com sinal precoce, e
+  suposições. Ids de requisito são estáveis para a vida do spec — nunca renumerados, porque o PRD
+  de cada feature os cita.
+
+### Added
+
+- **PRD por feature**, escrito por `/rush-spec` na mesma passada que `spec.md`, `plan.md`,
+  `tasks.md` e `done-contract.md`. Deliberadamente contido — o PRD do spec já tem a definição
+  completa, e repetir aqui é como dois documentos começam a discordar. Ele carrega o que é
+  verdade só daquela fatia (quem serve, o que precisa permitir, o que deixa para uma irmã, como
+  se julga que chegou) e, principalmente, uma tabela de **rastreabilidade**: todo requisito da
+  feature cita ao menos um `FR-NNN` do PRD do spec, e a linha que nomeia os requisitos do pai
+  *não* cobertos ali é o que impede duas features de cada uma assumir que a outra cuidou. Um
+  requisito sem nada a citar é scope creep ou lacuna no PRD do spec — achado a reportar, nunca a
+  preencher em silêncio. `/rush-analyze` passou a checar essa rastreabilidade e a tratar citação
+  que não resolve como blocker.
+- **`.rush/scripts/set-current.sh`** (`--spec` · `--feature` · `--clear-feature`) — move o cursor
+  de `.rush/state.json` para o trabalho em andamento. Setar a feature seta o spec dela junto; os
+  dois campos nunca podem discordar.
+- **`new-feature.sh --no-activate`** e **`--no-prd`**; **`new-spec.sh --pitch`** e **`--minimal`**.
+
+### Fixed
+
+- **`current_feature` apontava para a feature errada durante a implementação inteira.** Criar as
+  features de um spec em lote deixava o cursor na última criada; implementando da 001 até a 00N
+  ele ficava na 00N o caminho todo, coincidindo com a realidade só na última — o que produzia
+  aquele "agora sim bateu" na feature final. A causa era o cursor ser reivindicado por *criação*
+  em vez de por *atenção*. Agora `/rush-features` cria tudo com `--no-activate` e, no fim, aponta
+  `set-current.sh` para a primeira feature da ordem topológica; `/rush-spec` e `/rush-implement`
+  reivindicam a feature ao entrar nela. `session-start.sh` e `/rush-brief` passam a reportar a
+  feature em que se está de fato trabalhando.
+- **O caminho M deixava dois templates de PRD por preencher.** `/rush-quick` chamava `new-spec.sh`
+  e `new-feature.sh` sem forma de pular a camada de produto, então todo spec M ficava com um
+  `prd.md` de placeholders que ninguém naquele caminho voltaria para preencher e que
+  `validate-artifacts.sh` reportaria indefinidamente. Agora usa `--minimal` e `--no-prd`.
+
+## 0.5.0
+
+Três skills que existiam sem poder rodar, um controle que o schema anunciava sem aplicar, e as
+duas skills que ficaram apontando para o arquivo errado depois que a arquitetura virou por-spec
+na 0.3.0. Nada aqui é funcionalidade nova pedida — é o kit fechando o que já tinha prometido.
+
+### Added
+
+- **`.rush/scripts/pr-commits.sh`** — a base factual de `/rush-pr`: todo commit desde o que
+  adicionou `specs/<spec-id>/` ao histórico até `HEAD` (sha, data, autor, assunto, arquivos
+  tocados, flag de merge) e o status de `done-check.sh` de cada feature sob o spec.
+  `done_check_ok` é tri-estado — `true`, `false` ou `null` quando o check não pôde rodar —, e
+  `--no-checks` pula a execução dos done-contracts (que roda a suíte de testes de verdade) e
+  reporta `features_incomplete: null` em vez de fingir que mediu. Exit `1` quando alguma feature
+  está incompleta: resultado válido, não erro.
+- **`.rush/scripts/session-context.sh`** (`new-path <slug>` · `latest` · `list`) — dona do nome e
+  da busca dos arquivos de `/rush-context-save`/`/rush-context-load` sob `.rush/memory/sessions/`.
+  `new-path` cria só o diretório, nunca o arquivo, e reporta `dir_existed` e `gitignored` para a
+  skill poder oferecer a entrada no `.gitignore` em vez de adicioná-la sozinha. Store vazio é
+  `found: false` com exit `0` — resposta válida, não erro.
+- **`.rush/templates/pr-template.md`**, **`pr-preferences-template.md`** e
+  **`session-context-template.md`** — os três templates que `/rush-pr`, `/rush-context-save` e
+  `/rush-context-load` preenchem.
+- **Aplicação de `git.branch_pattern` em `guard-bash.sh`** — nega criar uma branch cujo nome não
+  casa com nenhum padrão declarado (`git checkout -b`, `git switch -c`, `git branch <nome>`,
+  incluindo rename/copy) e nega um `git commit` feito numa branch que não casa com nenhum. O padrão
+  é uma forma, não uma regex: tudo literal exceto `NNN` (três dígitos), `slug` (kebab-case), `*`
+  (um segmento) e `**` (qualquer coisa).
+- **Check `skill_dependencies` no `doctor.sh`** — resolve todo caminho `.rush/scripts/*.sh` e
+  `.rush/templates/*.md` citado por um `SKILL.md` ou por um subagent, e reporta como **erro** o que
+  não existe. É o mecanismo que impede a recorrência da falha que originou esta versão: uma skill
+  cujo script não existe é um comando que não pode funcionar, e hoje nada percebia isso até um
+  usuário invocá-lo.
+- **Cinco casos de eval novos** — `kit-skill-harness-references-exist` e
+  `kit-branch-pattern-enforced` (determinísticos, com fixtures próprias),
+  `quick-escalates-on-migration`, `pr-incomplete-feature-never-reported-done` e
+  `context-save-resolves-path-via-script`. `/rush-quick`, `/rush-pr` e `/rush-context-save`
+  passam a ter cobertura; a do `/rush-quick` cobre justamente a escalação que a própria skill
+  chama de seu guardrail mais importante.
+
+### Changed
+
+- **`git.branch_pattern` aceita uma lista, e o default passou a ser uma.** O default agora é
+  `["feat/NNN-slug", "main", "master"]` — como string única, a checagem recém-criada transformaria
+  todo commit na branch default em erro no instante em que passou a existir. `null` (ou lista
+  vazia) desliga a checagem inteira. **Se o `.rush/config.json` do seu projeto tem
+  `"branch_pattern": "feat/NNN-slug"` como string**, a partir desta versão commits em `main` são
+  negados: troque pela lista, ou ponha `null`, ou mantenha assim se é exatamente isso que você
+  quer.
+
+### Fixed
+
+- **`/rush-pr`, `/rush-context-save` e `/rush-context-load` não funcionavam.** As três shipparam
+  referenciando dois scripts e três templates que nunca foram escritos; na primeira invocação elas
+  paravam no próprio guardrail 2 ("se um script sai 2, pare e reporte"). As três também estavam
+  fora de `docs/agents.md`, `docs/flow.md`, da tabela de modelos de `kit-conventions.md`, do README
+  e do CHANGELOG. Agora existem de fato, e o novo check do `doctor.sh` guarda a classe do erro.
+- **`/rush-features` e `/rush-analyze` liam a arquitetura errada.** Desde a 0.3.0 a arquitetura
+  completa vive em `specs/<spec-id>/architecture.md` e `.rush/memory/architecture.md` guarda só o
+  digest de 25 linhas por spec; `/rush-architect`, `/rush-brief` e `/rush-spec` foram atualizados
+  na 0.4.0, essas duas não. O caso do `/rush-analyze` era o mais sério: um dos seus checks é
+  "architecture not reflected in plan", rodando contra o resumo condensado.
+- **Exemplos de documentação com id de feature no formato pré-0.3.0.** `docs/integration.md`,
+  `docs/definition-of-done.md` e `docs/internals/script-interfaces.md` mostravam `001-auth`,
+  `004-cart` e `specs/007-checkout/spec.md` — bare ids e o nível de aninhamento errado — enquanto
+  `/rush-features` manda explicitamente usar `<spec-id>/<feature-id>`. Exemplo é o que o modelo
+  copia. `docs/integration.md` agora diz a regra em uma frase, além de mostrá-la.
+- **`docs/harness.md` descrevia `branch_pattern` como não implementado citando um texto de schema
+  que não existe mais** — o `config.schema.json` já tinha sido corrigido para "advisory", o doc
+  não. Agora os dois descrevem o comportamento real, incluindo o que ele não cobre: uma branch que
+  o humano cria no próprio terminal não passa por hook nenhum.
+- **`.gitignore` do kit passou a cobrir `.rush/memory/sessions/`** — o diretório que
+  `/rush-context-save` cria é scratch de uma sessão, não artefato de projeto.
+- **Restaurado o bit de execução de cinco scripts** (`memory-prune.sh`, `new-feature.sh`,
+  `new-spec.sh`, `session-start.sh`, `validate-artifacts.sh`), que tinham perdido o `+x` na cópia
+  de trabalho — `spec-budget-violation-caught` falhava com exit 126 por causa disso.
+- **Removido `.rush/templates/_to_delete/progress-template.md`**, sobra da aposentadoria do
+  `progress.md` na 0.3.0.
+
 ## 0.4.0
 
 Token-cost changes, driven by real usage: a Pro-plan session burning its whole budget just

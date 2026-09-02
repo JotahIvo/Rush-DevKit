@@ -10,6 +10,8 @@
 #     before a `git commit` and deny if it finds a secret (exit 1)
 #   - git.commit_convention       -> deny a `git commit -m` whose message does not
 #     match the configured convention
+#   - git.branch_pattern          -> deny creating a branch whose name does not match
+#     the pattern, and deny a `git commit` made on a branch that does not match it
 #
 # Contract: exit 2 + stderr message + PreToolUse "deny" JSON on stdout to BLOCK.
 # Exit 0 (with no output, or with an "allow" systemMessage) to let the tool call
@@ -130,6 +132,106 @@ def git_subcommand(tokens):
     return None, []
 
 
+def new_branch_name(subcmd, rest):
+    """The branch name this segment would CREATE, or None if it creates nothing.
+
+    Covers the three ways an agent creates a branch through the Bash tool:
+    `git checkout -b/-B`, `git switch -c/-C`, and `git branch <name>` (including the
+    rename/copy forms, whose target is a new name too). Listing and deleting create
+    nothing and are never blocked here.
+    """
+    if subcmd in ("checkout", "switch"):
+        for i, tok in enumerate(rest):
+            if tok in ("-b", "-B", "-c", "-C"):
+                if i + 1 < len(rest):
+                    return rest[i + 1]
+                return None
+        return None
+    if subcmd == "branch":
+        flags = [t for t in rest if t.startswith("-")]
+        positionals = [t for t in rest if not t.startswith("-")]
+        moving = any(f in ("-m", "-M", "--move", "-c", "-C", "--copy") for f in flags)
+        if moving:
+            # `git branch -m <old> <new>` / `git branch -m <new>`: the new name is last.
+            return positionals[-1] if positionals else None
+        if any(f in ("-d", "-D", "--delete") for f in flags):
+            return None
+        # Anything else with no positional argument is a listing form.
+        return positionals[0] if positionals else None
+    return None
+
+
+BRANCH_PLACEHOLDERS = (
+    ("NNN", r"\d{3}"),
+    ("slug", r"[a-z0-9][a-z0-9._-]*"),
+    ("**", r".*"),
+    ("*", r"[^/]*"),
+)
+
+
+def branch_pattern_regex(pattern):
+    """Compile one git.branch_pattern into a full-match regex.
+
+    The pattern is a naming convention, not a regex: everything is literal except the
+    placeholders above — NNN (a zero-padded three-digit id), slug (a kebab-case name),
+    and shell-style * / **. Treating the whole string as a regex would silently accept
+    'feat/NNN-slug' matching almost nothing, since '-' and '/' mean nothing special.
+    """
+    out = []
+    i = 0
+    while i < len(pattern):
+        for token, rx in BRANCH_PLACEHOLDERS:
+            if pattern.startswith(token, i):
+                out.append(rx)
+                i += len(token)
+                break
+        else:
+            out.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile("^" + "".join(out) + "$")
+
+
+def branch_patterns(raw):
+    """Normalise git.branch_pattern (a string, or a list of them) into compiled regexes.
+
+    An empty string, null, or an empty list means the project has not declared a
+    convention — enforcement is off, which is the documented way to turn it off.
+    """
+    if isinstance(raw, str):
+        raw = [raw] if raw.strip() else []
+    if not isinstance(raw, list):
+        return []
+    compiled = []
+    for item in raw:
+        if isinstance(item, str) and item.strip():
+            try:
+                compiled.append((item, branch_pattern_regex(item)))
+            except re.error:
+                continue
+    return compiled
+
+
+def branch_matches(name, compiled):
+    return any(rx.match(name) for _, rx in compiled)
+
+
+def current_branch(root):
+    """The checked-out branch, or None when detached / not a repo / git unavailable."""
+    try:
+        proc = subprocess.run(
+            ["git", "-C", root, "rev-parse", "--abbrev-ref", "HEAD"],
+            capture_output=True, text=True, timeout=10,
+        )
+    except Exception:
+        return None
+    if proc.returncode != 0:
+        return None
+    name = proc.stdout.strip()
+    if not name or name == "HEAD":
+        return None
+    return name
+
+
 def extract_message(rest_tokens):
     for i, tok in enumerate(rest_tokens):
         if tok in ("-m", "--message"):
@@ -227,14 +329,19 @@ def main():
     allow_push = cfg_get(cfg, "git.allow_push", False)
     secret_scan_before_commit = cfg_get(cfg, "security.secret_scan_before_commit", True)
     commit_convention = cfg_get(cfg, "git.commit_convention", "conventional")
+    branch_rules = branch_patterns(cfg_get(cfg, "git.branch_pattern", None))
 
     commit_rest = None
     push_seen = False
+    created_branches = []
     for subcmd, rest in parsed:
         if subcmd == "commit":
             commit_rest = rest
         elif subcmd == "push":
             push_seen = True
+        created = new_branch_name(subcmd, rest)
+        if created:
+            created_branches.append(created)
 
     # 2. git.allow_commit
     if commit_rest is not None and allow_commit is False:
@@ -252,7 +359,33 @@ def main():
             "either push manually or set git.allow_push=true."
         )
 
-    # 4. security.secret_scan_before_commit
+    # 4. git.branch_pattern — a branch being created must match the declared convention,
+    # and a commit must be made on a branch that matches it. Enforcement is off entirely
+    # when the pattern is null, empty or an empty list; a project that wants to keep
+    # committing on its default branch declares it, e.g. ["feat/NNN-slug", "main"].
+    if branch_rules:
+        shapes = ", ".join(repr(p) for p, _ in branch_rules)
+        for name in created_branches:
+            if not branch_matches(name, branch_rules):
+                deny(
+                    "Blocked by git.branch_pattern in .rush/config.json: branch name %r "
+                    "does not match the project's naming convention (%s). In these "
+                    "patterns NNN is a zero-padded three-digit id and slug is a "
+                    "kebab-case name. Rename the branch to match, or a human can change "
+                    "git.branch_pattern in .rush/config.json." % (name, shapes)
+                )
+        if commit_rest is not None and not created_branches:
+            branch = current_branch(root)
+            if branch is not None and not branch_matches(branch, branch_rules):
+                deny(
+                    "Blocked by git.branch_pattern in .rush/config.json: the current "
+                    "branch %r does not match the project's naming convention (%s). "
+                    "Create a branch that matches and commit there, or a human can add "
+                    "this branch's shape to git.branch_pattern (it accepts a list) or "
+                    "set it to null to turn the check off." % (branch, shapes)
+                )
+
+    # 5. security.secret_scan_before_commit
     if commit_rest is not None and secret_scan_before_commit:
         scan_path = os.path.join(root, ".rush", "scripts", "secret-scan.sh")
         if os.path.isfile(scan_path):
@@ -287,7 +420,7 @@ def main():
                 )
                 return
 
-    # 5. git.commit_convention
+    # 6. git.commit_convention
     if commit_rest is not None and commit_convention:
         message = extract_message(commit_rest)
         if message is not None:

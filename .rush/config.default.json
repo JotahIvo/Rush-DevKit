@@ -28,14 +28,14 @@
   },
   "triage": { "sensitive_forces_L": true, "max_files_for_S": 3 },
   "budgets": {
-    "pitch": 60,
-    "prd": 200,
-    "spec": 150,
-    "plan": 100,
-    "architecture": 200,
-    "architecture_summary": 25,
-    "claude_md": 60,
-    "constitution": 200
+    "pitch": null,
+    "prd": null,
+    "spec": null,
+    "plan": null,
+    "architecture": null,
+    "architecture_summary": null,
+    "claude_md": null,
+    "constitution": null
   },
   "verification": { "check_timeout_seconds": 600, "stale_spec_commits": 10 },
   "doctor": { "stale_days": 14 },

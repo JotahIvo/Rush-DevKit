@@ -14,23 +14,29 @@ dentro do markdown:
 ```json
 {
   "features": [
-    { "id": "001-auth", "title": "Autenticação",
-      "provides": [{ "kind": "endpoint", "name": "POST /auth/login", "contract": "specs/001-auth/contracts/login.yaml#/paths" }],
+    { "id": "003-checkout/001-auth", "title": "Autenticação",
+      "provides": [{ "kind": "endpoint", "name": "POST /auth/login", "contract": "specs/003-checkout/001-auth/contracts/login.yaml#/paths" }],
       "consumes": [], "depends_on": [] },
-    { "id": "004-cart", "title": "Carrinho",
+    { "id": "003-checkout/004-cart", "title": "Carrinho",
       "provides": [{ "kind": "endpoint", "name": "POST /cart/items" }],
-      "consumes": [{ "kind": "endpoint", "name": "POST /auth/login", "from": "001-auth" }],
-      "depends_on": ["001-auth"] }
+      "consumes": [{ "kind": "endpoint", "name": "POST /auth/login", "from": "003-checkout/001-auth" }],
+      "depends_on": ["003-checkout/001-auth"] }
   ],
   "shared_contracts": [
-    { "name": "POST /auth/login", "owner": "001-auth", "path": "specs/shared-contracts/auth.md" }
+    { "name": "POST /auth/login", "owner": "003-checkout/001-auth", "path": "specs/shared-contracts/auth.md" }
   ],
   "journeys": [
     { "id": "guest-checkout", "description": "Cliente compra sem cadastro prévio",
-      "features": ["001-auth", "004-cart"], "test": "tests/journeys/guest-checkout.spec.ts" }
+      "features": ["003-checkout/001-auth", "003-checkout/004-cart"], "test": "tests/journeys/guest-checkout.spec.ts" }
   ]
 }
 ```
+
+Todo `id` de feature no mapa é `<spec-id>/<feature-id>`, nunca um id de feature sozinho: features
+são aninhadas dentro do seu spec e cada spec numera as suas a partir de `001`, então `001-auth`
+sozinho é ambíguo no instante em que existe mais de um spec. Isso vale para `id`, para o `from` de
+um `consumes`, para `depends_on`, para `shared_contracts[].owner` e para os `features` de uma
+journey.
 
 `kind` é um de `endpoint | event | component | data | module`. `from`, numa entrada `consumes`,
 sempre nomeia a feature que deveria prover aquilo. `depends_on` lista as features que precisam

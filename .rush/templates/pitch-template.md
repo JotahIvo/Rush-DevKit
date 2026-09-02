@@ -1,4 +1,5 @@
-<!-- Budget: 60 lines. Density over completeness. -->
+<!-- Short on purpose: a pitch is one sentence's worth of idea given just enough shape to write a
+     PRD from. If it is getting long, the PRD is what you actually want. -->
 <!-- PRODUCT artifact: the problem and the appetite to solve it. Never technology, endpoints,
      schemas or screens — those belong to architecture/spec. If a sentence names a library, a
      table or a component, it does not belong in a pitch. -->

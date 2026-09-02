@@ -1,4 +1,5 @@
-<!-- Budget: 150 lines. Density over completeness. -->
+<!-- Density over completeness: as long as the content honestly requires, never padded to look
+     thorough, never truncated to hit a number. -->
 <!-- SPEC artifact: observable technical WHAT — interfaces, data, states, edge cases. Never
      internal implementation detail (class layout, variable names, private helpers — that's
      plan.md), never agent process ("run the test suite", "commit at the end" — that's harness

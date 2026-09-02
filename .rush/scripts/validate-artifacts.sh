@@ -1,9 +1,13 @@
 #!/usr/bin/env bash
-# validate-artifacts.sh - required sections + line budgets + unresolved
-# placeholder markers for rush artifacts (spec.md, plan.md, tasks.md,
-# done-contract.md, pitch.md, prd.md, questions.md, CLAUDE.md,
-# constitution.md, and each spec's own architecture.md plus its condensed
-# summary in .rush/memory/architecture.md).
+# validate-artifacts.sh - required sections + unresolved placeholder markers
+# for rush artifacts (a feature's prd.md, spec.md, plan.md, tasks.md and
+# done-contract.md; a spec's pitch.md, prd.md, questions.md and
+# architecture.md; CLAUDE.md, constitution.md, and the condensed per-spec
+# digest in .rush/memory/architecture.md).
+#
+# Line budgets are also enforced here, but NOTHING has a built-in ceiling any
+# more: every default is None, and a budget applies only where a project sets
+# one in .rush/config.json -> budgets. See DEFAULT_BUDGETS below.
 #
 # Usage: validate-artifacts.sh [<feature-id>|--all] [--json]
 #
@@ -16,11 +20,12 @@ usage() {
   cat <<'EOF'
 Usage: validate-artifacts.sh [<feature-id>|--all] [--json]
 
-Validates required sections, line budgets and unresolved placeholder
-markers ([NEEDS CLARIFICATION], TODO, {{...}}, unfilled <...>) across
-rush artifacts.
+Validates required sections and unresolved placeholder markers
+([NEEDS CLARIFICATION], TODO, {{...}}, unfilled <...>) across rush
+artifacts, plus any line budget the project has explicitly set in
+.rush/config.json -> budgets (none are set by default).
 
-  <feature-id>   Validate specs/<feature-id>/{spec,plan,tasks,done-contract}.md.
+  <feature-id>   Validate specs/<feature-id>/{prd,spec,plan,tasks,done-contract}.md.
   --all          Validate every feature dir, every spec's own artifacts
                  (pitch.md, prd.md, questions.md, architecture.md, and its
                  condensed summary in .rush/memory/architecture.md), plus
@@ -67,18 +72,23 @@ root, target = sys.argv[1], sys.argv[2]
 # filenames): pitch, prd, spec, plan, architecture, architecture_summary,
 # claude_md, constitution. "architecture" bounds a spec's own, complete
 # specs/<spec-id>/architecture.md; "architecture_summary" bounds the
-# condensed per-spec digest appended to the shared .rush/memory/architecture.md
-# (never the same budget — the summary must stay much smaller than the full
-# document it points back to).
+# condensed per-spec digest appended to the shared .rush/memory/architecture.md.
+#
+# Every default is None: NO artifact has a built-in line ceiling. A document is
+# as long as its content honestly requires, and a PRD or an architecture cut
+# short to hit a number just moves the missing decisions into someone's head.
+# The mechanism stays because a project may genuinely want a cap on a specific
+# file (a CLAUDE.md every agent reads on every run is the usual case) — set the
+# key in .rush/config.json -> budgets and this check enforces it again.
 DEFAULT_BUDGETS = {
-    "pitch": 60,
-    "prd": 200,
-    "spec": 150,
-    "plan": 100,
-    "architecture": 200,
-    "architecture_summary": 25,
-    "claude_md": 60,
-    "constitution": 200,
+    "pitch": None,
+    "prd": None,
+    "spec": None,
+    "plan": None,
+    "architecture": None,
+    "architecture_summary": None,
+    "claude_md": None,
+    "constitution": None,
 }
 
 # Maps an artifact's basename to its budgets config key. "architecture.md"
@@ -110,6 +120,9 @@ def budgets():
     overrides = cfg.get("budgets") if isinstance(cfg, dict) else None
     if isinstance(overrides, dict):
         for k, v in overrides.items():
+            if v is None:
+                b[k] = None
+                continue
             try:
                 b[k] = int(v)
             except Exception:
@@ -188,9 +201,18 @@ def find_placeholders(text):
             found.append((line_no, m.group(0)))
     return found
 
+# Keyed by artifact KIND, not by basename: prd.md exists at two levels with
+# deliberately different shapes — the spec's own complete product definition,
+# and a feature's contained slice of it — so the caller says which one it is
+# passing rather than the check guessing from a filename they share.
 REQUIRED_SECTIONS = {
     "spec.md": ["behav", "interface", "data", "edge case", "out of scope", "assumption"],
     "plan.md": ["approach", "files", "order of work", "risk", "alternative"],
+    "spec-prd": ["overview", "use cases", "goals", "out of scope",
+                 "functional requirements", "quality attributes", "journeys",
+                 "success metrics", "assumptions"],
+    "feature-prd": ["overview", "requirements", "traceability", "out of scope",
+                    "success criteria"],
     # Acceptance criteria moved out of spec.md and into done-contract.md, merged
     # with the Definition of Done that enforces them — this required-section
     # check is the section-heading half of that; check_done_contract() below
@@ -211,8 +233,8 @@ def headings(text):
             hs.append(line.strip("# ").strip().lower())
     return hs
 
-def check_sections(rel_path, text, violations):
-    base = os.path.basename(rel_path)
+def check_sections(rel_path, text, violations, kind=None):
+    base = kind or os.path.basename(rel_path)
     required = REQUIRED_SECTIONS.get(base)
     if not required:
         return
@@ -378,7 +400,9 @@ def check_architecture_summary_section(rel_path, text, spec_id, violations, budg
             break
     section_text = "\n".join(lines[start:end])
     n = budget_line_count(section_text)
-    limit = budget_map.get("architecture_summary", DEFAULT_BUDGETS["architecture_summary"])
+    limit = budget_map.get("architecture_summary")
+    if limit is None:
+        return
     if n > limit:
         violations.append({
             "file": rel_path, "rule": "budget",
@@ -429,7 +453,7 @@ bmap = budgets()
 
 def validate_feature(fid):
     fdir = "specs/%s" % fid
-    for fname in ("spec.md", "plan.md", "tasks.md", "done-contract.md"):
+    for fname in ("prd.md", "spec.md", "plan.md", "tasks.md", "done-contract.md"):
         rel = "%s/%s" % (fdir, fname)
         text = read(rel)
         if text is None:
@@ -442,6 +466,8 @@ def validate_feature(fid):
         elif fname == "done-contract.md":
             check_done_contract(rel, text, violations)
             check_sections(rel, text, violations)
+        elif fname == "prd.md":
+            check_sections(rel, text, violations, kind="feature-prd")
         else:
             check_sections(rel, text, violations)
 
@@ -459,6 +485,8 @@ def validate_spec(spec_id):
         checked.append(rel)
         check_budget(rel, text, violations, bmap)
         check_placeholders(rel, text, violations)
+        if fname == "prd.md":
+            check_sections(rel, text, violations, kind="spec-prd")
     arch_mem_text = read(".rush/memory/architecture.md")
     if arch_mem_text is not None:
         checked.append(".rush/memory/architecture.md#%s" % spec_id)

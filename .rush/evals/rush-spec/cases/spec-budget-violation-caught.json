@@ -1,14 +1,16 @@
 {
   "id": "spec-budget-violation-caught",
   "agent": "rush-spec",
-  "description": "A spec.md that grows past the 150-line budget (SKILL.md process step 4: 'If you exceed it, the feature is too big') must be caught by validate-artifacts.sh, not shipped silently. Guards against the safety net rush-spec's own process step 8 relies on going silent.",
+  "description": "Line budgets are OFF by default since 0.6.0 — every key in config.json -> budgets defaults to null, because a document is as long as its content honestly requires. The mechanism stays for the project that genuinely wants a ceiling on one file, and this case guards that it still works when asked for: the fixture sets budgets.spec = 150 in its own .rush/config.json, and validate-artifacts.sh must report the over-budget spec.md. It also pins the default: the same file, checked from a project that sets no budget, must NOT be reported.",
   "given": {
     "cwd": ".rush/evals/fixtures/over-budget-spec",
-    "scenario": "Fixture project containing specs/001-fixture/spec.md, deliberately 182 lines (budget is 150). Represents a spec a rushed /rush-spec run left over budget."
+    "scenario": "Fixture project containing specs/001-fixture/spec.md, deliberately 182 lines, with .rush/config.json setting budgets.spec = 150. The no-budget half runs the same validator from a fixture that sets none."
   },
   "graders": [
     { "type": "file_exists", "path": "specs/001-fixture/spec.md" },
+    { "type": "file_exists", "path": ".rush/config.json" },
     { "type": "script", "run": "../../../../.rush/scripts/validate-artifacts.sh 001-fixture --json", "expect": "exit 1" },
-    { "type": "script", "run": "../../../../.rush/scripts/validate-artifacts.sh 001-fixture --json", "expect": "contains: \"rule\": \"budget\"" }
+    { "type": "script", "run": "../../../../.rush/scripts/validate-artifacts.sh 001-fixture --json", "expect": "contains: \"rule\": \"budget\"" },
+    { "type": "script", "run": "cd ../integration-map-valid && ../../../../.rush/scripts/validate-artifacts.sh --all --json", "expect": "not_contains: \"rule\": \"budget\"" }
   ]
 }

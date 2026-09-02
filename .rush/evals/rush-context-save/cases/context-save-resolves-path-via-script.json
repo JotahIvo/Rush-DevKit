@@ -1,0 +1,35 @@
+{
+  "id": "context-save-resolves-path-via-script",
+  "agent": "rush-context-save",
+  "description": "Guardrail 2 and step 3: the file's path comes from session-context.sh new-path, never from a hand-picked filename — and its read side must treat an empty store as a valid answer, not an error, so /rush-context-load can say 'nothing saved yet' instead of failing. The deterministic graders pin that contract on a fixture; the rubric covers what only an agent run shows: that ruled-out approaches are recorded and nothing already durable is copied in.",
+  "given": {
+    "cwd": ".",
+    "scenario": "Fixture .rush/evals/fixtures/session-context-project/ has an empty store (no .rush/memory/sessions/ at all). The graders below are read-only — they never create the directory, so running the suite does not leave anything behind. For the manual half: run a real session with back-and-forth in which at least one approach is proposed and rejected, then invoke /rush-context-save."
+  },
+  "graders": [
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/session-context-project && ../../../../.rush/scripts/session-context.sh latest --json",
+      "expect": "contains: \"found\": false"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/session-context-project && ../../../../.rush/scripts/session-context.sh latest --json",
+      "expect": "exit 0"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/session-context-project && ../../../../.rush/scripts/session-context.sh list --json",
+      "expect": "contains: \"count\": 0"
+    },
+    {
+      "type": "script",
+      "run": "cd .rush/evals/fixtures/session-context-project && ../../../../.rush/scripts/session-context.sh new-path \"!!!\" --json",
+      "expect": "exit 2"
+    },
+    {
+      "type": "manual",
+      "rubric": "PASS only if the file was written at the path session-context.sh new-path returned (a <YYYY-MM-DD>-<slug>.md under .rush/memory/sessions/, slug derived from the session's actual topic — not 'session' or the date alone); every template section is present, with an explicit 'none' where nothing applied rather than the heading omitted; the Ruled Out section names at least the approach that was actually rejected in the session, with why; the Open Thread states a concrete next step, not 'continue working on this'; and anything already recorded in tasks.md's Session Log, questions.md or debt.md is referenced by path instead of copied in. FAIL if a decision or a rejected approach that did not happen was invented to fill a section. FAIL if the skill wrote to .gitignore, debt.md, questions.md or any file other than the new session-context file."
+    }
+  ]
+}

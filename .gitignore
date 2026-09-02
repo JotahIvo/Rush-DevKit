@@ -5,3 +5,5 @@ node_modules/
 # Generated per-project by /rush-init or /rush-new — never committed with the kit itself.
 .rush/config.json
 .rush/state.json
+# Local scratch written by /rush-context-save — one session's context, not a project artifact.
+.rush/memory/sessions/

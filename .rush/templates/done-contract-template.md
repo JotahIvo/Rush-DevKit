@@ -1,8 +1,7 @@
 <!-- DONE-CONTRACT artifact: the executable Definition of Done, together with the acceptance
      criteria it enforces — one document instead of two, so a criterion and the thing that proves
-     it can never drift apart. Budget: 150 lines (matches spec.md's old ceiling, since this file
-     absorbed spec.md's Acceptance Criteria section). Density over completeness: a done-contract
-     with checks nobody trusts gets bypassed instead of fixed. -->
+     it can never drift apart. Density over completeness: a done-contract with checks nobody
+     trusts gets bypassed instead of fixed. -->
 <!-- Negotiated with the user before any code is written. Filled by /rush-spec, executed by
      .rush/scripts/done-check.sh. Location: specs/{{FEATURE_ID}}/done-contract.md -->
 

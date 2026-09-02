@@ -350,6 +350,65 @@ else:
             "%d hook command(s) in .claude/settings.json resolve." % total_hooks)
 
 # ---------------------------------------------------------------------------
+# 3.5 every .rush/scripts/*.sh and .rush/templates/*.md a skill or subagent
+# names actually exists.
+#
+# This guards a real failure: three skills shipped referencing two scripts and
+# three templates that were never written. Nothing caught it — each SKILL.md is
+# internally consistent, and the missing file only surfaces when a user invokes
+# the command and the skill stops at its own "if a script exits 2, stop and
+# report" guardrail. A skill whose harness does not exist is a command that
+# cannot work, so it is an error, not a warning.
+# ---------------------------------------------------------------------------
+prompt_files = []
+for sub, pattern in ((os.path.join(".claude", "skills"), "SKILL.md"),
+                     (os.path.join(".claude", "agents"), None)):
+    base = os.path.join(ROOT, sub)
+    if not os.path.isdir(base):
+        continue
+    for entry in sorted(os.listdir(base)):
+        full = os.path.join(base, entry)
+        if pattern and os.path.isdir(full):
+            candidate = os.path.join(full, pattern)
+            if os.path.isfile(candidate):
+                prompt_files.append(candidate)
+        elif not pattern and os.path.isfile(full) and entry.endswith(".md"):
+            prompt_files.append(full)
+
+if not prompt_files:
+    add("skill_dependencies", "info", True,
+        "No .claude/skills/ or .claude/agents/ prompts to check.")
+else:
+    # Deliberately narrow: only concrete paths under .rush/scripts/ and
+    # .rush/templates/. A path carrying a <placeholder> or a {{TOKEN}} is a
+    # shape, not a file, and is skipped rather than guessed at.
+    dep_re = re.compile(r"\.rush/(?:scripts|templates)/[A-Za-z0-9_./-]+\.(?:sh|md|py)")
+    missing = []
+    checked = 0
+    for path in prompt_files:
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+                text = fh.read()
+        except OSError:
+            continue
+        for dep in sorted(set(dep_re.findall(text))):
+            if "<" in dep or "{" in dep:
+                continue
+            checked += 1
+            if not os.path.exists(os.path.join(ROOT, dep)):
+                missing.append("%s -> %s" % (rel(path), dep))
+    if missing:
+        add("skill_dependencies", "error", False,
+            "Prompt(s) reference harness files that do not exist:\n  - "
+            + "\n  - ".join(sorted(set(missing))),
+            "Write the missing script/template, or fix the path in the prompt. "
+            "A skill whose script is missing fails on its first invocation.")
+    else:
+        add("skill_dependencies", "info", True,
+            "%d harness reference(s) across %d prompt(s) all resolve."
+            % (checked, len(prompt_files)))
+
+# ---------------------------------------------------------------------------
 # 4. commands.* in config.json resolve
 # ---------------------------------------------------------------------------
 commands = cfg_get(cfg, "commands", {}) or {}
