@@ -1,6 +1,6 @@
 # Skills e subagents
 
-O Rush DevKit é composto por **21 skills** (comandos `/rush-*`, cada um um `SKILL.md` sob
+O Rush DevKit é composto por **22 skills** (comandos `/rush-*`, cada um um `SKILL.md` sob
 `.claude/skills/<nome>/`) e **4 subagents** (`.claude/agents/*.md`, despachados pelas skills, nunca
 chamados diretamente pelo usuário). O nome do diretório é o nome do comando:
 `.claude/skills/rush-spec/SKILL.md` → `/rush-spec`.
@@ -67,6 +67,7 @@ Duas colunas merecem nota:
 | `/rush` | Ponto de entrada: classifica um pedido em S/M/L a partir de `triage.sh` e roteia — edição direta, `/rush-quick` ou `/rush-pitch`. | auto | haiku | Nunca implementa, nunca escreve spec, nunca cria diretório de feature; faz no máximo uma pergunta de confirmação. |
 | `/rush-brief` | Resume o estado atual de uma feature (progresso, tasks, done-check, questões, débito, próximo passo exato) em `specs/<feature-id>/brief.md` para retomada por outra pessoa/sessão. | auto | haiku | Não muda nada — não edita spec/plan/tasks/done-contract nem status de task; se algo parece errado, registra como observação, não conserta. |
 | `/rush-doctor` | Roda `doctor.sh` e transforma os achados num relatório priorizado e acionável, terminando em uma única ação de maior valor. | auto | haiku | Nunca corrige nada sozinho — nem um `chmod +x` trivial; nunca inventa achado que o script não reportou. |
+| `/rush-update` | Resolve os arquivos que uma atualização do kit deixou em conflito: faz o merge em três vias (o que o kit mudou por cima do que o projeto mudou) de prompts e templates, roda o portão de verificação e entrega o comando de `--finalize`. | manual | opus | Não faz merge de script nem de hook — esses param para um humano, porque merge errado num hook bloqueia toda escrita no projeto; não toca em arquivo fora da lista que o `update.sh` preparou; não finaliza com conflito pendente; se a verificação regride, restaura do backup em vez de insistir no merge. |
 | `/rush-context-save` | Compacta o que existe **só nesta conversa** — decisões, o que foi descartado e por quê, arquivos tocados, a thread em aberto — num arquivo denso sob `.rush/memory/sessions/` (caminho vindo de `session-context.sh new-path`). | auto | haiku | Não duplica o que já é durável (`tasks.md`, `questions.md`, `debt.md`) — referencia por caminho; não escreve em nenhum desses arquivos nem no `.gitignore`; não inventa uma decisão ou um descarte que não aconteceu para preencher seção. |
 | `/rush-context-load` | Lê um arquivo salvo por `/rush-context-save` (o mais recente por padrão) e o recapitula numa sessão nova, checando antes se o estado do projeto mudou desde a gravação. | auto | haiku | Não executa a thread em aberto sem confirmar que ela ainda vale; não despeja o arquivo de volta no chat verbatim; não fabrica recap a partir de outro estado do projeto quando não existe arquivo salvo. |
 

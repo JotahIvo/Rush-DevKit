@@ -330,12 +330,60 @@ falhando ou human gate pendente, resultado válido e não erro —, `2` uso inv�
 ou diretório fora de um repositório git. Um spec ainda não commitado devolve `range.from: null`,
 `commit_count: 0` e um campo `note` dizendo isso, em vez de inventar um intervalo.
 
+### `lib/kitfiles.py <plan|apply|snapshot|migrate|classify>`
+
+Não é um script de projeto — é a biblioteca que `install.sh` e `update.sh` compartilham, e a
+única fonte da verdade sobre **o que é do kit e o que é do projeto**. Classificação por caminho,
+três classes (`kit`, `seed`, `merge`) e nada mais; o resto do projeto nunca aparece num plano.
+Documentada em [`updating.md`](../updating.md).
+
+```
+plan     --kit <dir> --target <dir> [--adopt]   o que um update faria; não escreve nada
+apply    --kit <dir> --target <dir> [--adopt]   aplica o inequívoco, staging do resto
+snapshot --kit <dir> --target <dir> [--version] grava manifest.json + baseline.tar.gz + VERSION
+migrate  --kit <dir> --target <dir> --from X --to Y [--dry-run]   migrações de config.json
+classify <path...>                               a classe de um caminho
+```
+
+Saída de `plan` (exit `0` sem conflito, `1` com conflito, `2` sem manifesto e sem `--adopt`):
+
+```json
+{ "from_version": "0.6.0", "to_version": "0.7.0",
+  "add": [...], "update": [...], "remove": [...],
+  "conflict": [{ "path": "...", "agent_mergeable": true, "has_base": true }],
+  "local_only": [...], "unchanged": [...], "seed_missing": [...],
+  "settings_merge": ".claude/settings.json",
+  "summary": { "add": 3, "update": 4, "remove": 1, "conflict": 2, ... } }
+```
+
+Formato de `.rush/manifest.json` — os **dois** hashes por arquivo são o que torna a comparação de
+três vias possível: `sha256` é o que está no disco, `kit_sha256` é o que o kit enviou naquela
+versão. `local ≠ enviado` responde "o projeto mexeu"; `enviado-antes ≠ enviado-agora` responde "o
+kit mexeu". Sem o segundo, um arquivo que o `/rush-update` mergeou pareceria pristino no update
+seguinte e seria sobrescrito, perdendo o merge.
+
+```json
+{ "kit_version": "0.7.0", "installed_at": "...", "updated_at": "...",
+  "files": { ".rush/scripts/triage.sh": { "sha256": "...", "kit_sha256": "...", "class": "kit" } } }
+```
+
+### `update.sh <target> [--dry-run] [--adopt] [--json] [--finalize]`
+
+Fica na raiz do **kit**, não do projeto, e roda a partir do kit novo — só a versão que introduz
+uma mudança traz a migração que a explica. Exit `0` update completo, `1` conflitos pendentes
+(estado válido, não erro), `2` erro de uso ou projeto sem manifesto sem `--adopt`.
+
+Grava `.rush/.update/pending.json` enquanto há conflito, e só escreve `manifest.json`,
+`baseline.tar.gz` e `.rush/VERSION` no `--finalize` — depois dos merges, para que o manifesto
+registre o arquivo mergeado como divergente de propósito.
+
 ### `doctor.sh [--json] [--fix-suggestions]`
 
 Diagnóstico: config válido contra o schema · scripts executáveis · hooks referenciados existem ·
 comandos do config funcionam · specs órfãs (sem código) e código sem spec · integration map válido ·
 orçamentos estourados · questions (de cada spec) e debt parados há mais de N dias · drift
-acumulado · versão do kit. Exit 1 se houver item `severity: error`.
+acumulado · versão do kit · **estado da atualização** (`kit_update`: update pela metade, manifesto
+ausente, ou `VERSION` discordando do manifesto). Exit 1 se houver item `severity: error`.
 
 ### `eval.sh [<agente>|--all] [--json] [--case <id>]`
 

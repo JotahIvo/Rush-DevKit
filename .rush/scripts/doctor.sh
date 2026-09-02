@@ -409,6 +409,59 @@ else:
             % (checked, len(prompt_files)))
 
 # ---------------------------------------------------------------------------
+# 3.7 kit update bookkeeping: is there a half-finished update, and can this
+# project be updated at all?
+#
+# A project stuck between versions is invisible otherwise: the files are on
+# disk, the prompts may be a mix of two releases, and nothing says so.
+# ---------------------------------------------------------------------------
+pending_path = os.path.join(ROOT, ".rush", ".update", "pending.json")
+manifest_path = os.path.join(ROOT, ".rush", "manifest.json")
+
+if os.path.isfile(pending_path):
+    pending, pending_err = read_json(pending_path)
+    if pending_err or not isinstance(pending, dict):
+        add("kit_update", "warning", False,
+            "A kit update is pending but .rush/.update/pending.json does not parse.",
+            "Inspect it, or restore from .rush/backups/ and re-run the kit's update.sh.")
+    else:
+        staged = ((pending.get("applied") or {}).get("staged") or [])
+        add("kit_update", "warning", False,
+            "A kit update from %s to %s is unfinished: %d file(s) still conflicting."
+            % (pending.get("from_version"), pending.get("to_version"), len(staged)),
+            "Run /rush-update to merge them, then the kit's update.sh <project> --finalize. "
+            "Until then this project is running a mix of two versions.")
+elif not os.path.isfile(manifest_path):
+    add("kit_update", "info", True,
+        ".rush/manifest.json not present — this project predates kit update tracking.",
+        "Nothing is broken. The next update needs update.sh --adopt, which cannot detect "
+        "local edits to kit files on that first run (originals are backed up).")
+else:
+    mf, mf_err = read_json(manifest_path)
+    if mf_err or not isinstance(mf, dict):
+        add("kit_update", "warning", False,
+            ".rush/manifest.json is not valid JSON.",
+            "Re-run the kit's update.sh --finalize, or install.sh, to rewrite it.")
+    else:
+        installed = mf.get("kit_version")
+        on_disk = None
+        vpath = os.path.join(ROOT, ".rush", "VERSION")
+        if os.path.isfile(vpath):
+            try:
+                with open(vpath, encoding="utf-8") as fh:
+                    on_disk = fh.read().strip()
+            except OSError:
+                on_disk = None
+        if installed and on_disk and installed != on_disk:
+            add("kit_update", "warning", False,
+                ".rush/VERSION says %s but the manifest records %s." % (on_disk, installed),
+                "An update was applied without being finalised. Run the kit's "
+                "update.sh <project> --finalize.")
+        else:
+            add("kit_update", "info", True,
+                "Kit files tracked: %d, installed version %s." % (len(mf.get("files") or {}), installed))
+
+# ---------------------------------------------------------------------------
 # 4. commands.* in config.json resolve
 # ---------------------------------------------------------------------------
 commands = cfg_get(cfg, "commands", {}) or {}

@@ -1,5 +1,69 @@
 # Changelog
 
+## 0.7.0
+
+O kit não tinha caminho de atualização. `install.sh` tem dois modos e os dois estão errados para
+isso: sem `--force` ele pula tudo que já existe — e depois do `/rush-init` existe tudo, então um
+"update" copiava zero arquivos —, e com `--force` ele sobrescreve `config.json`, `CLAUDE.md`,
+`settings.json`, a memória do projeto e os casos de eval que o `/rush-retro` escreveu. Na prática
+só havia reinstalação destrutiva.
+
+O que faltava não era um comando, eram três capacidades: **trocar** o que é do kit, **preservar**
+o que é do projeto, e **migrar** o que fica no meio — as chaves de config cuja semântica mudou
+entre versões. Esta versão adiciona as três.
+
+### Added
+
+- **`.rush/scripts/lib/kitfiles.py`** — a fonte da verdade sobre o que é de quem. Classificação
+  por caminho, três classes: `kit` (substituído quando o projeto não tocou), `seed` (escrito uma
+  vez na instalação, nunca revisitado — `.rush/memory/**`) e `merge` (`settings.json`, mesclado
+  campo a campo). Tudo o mais nunca aparece num plano, que é como os casos de eval do
+  `/rush-retro` e o `config.json` sobrevivem sem regra especial.
+- **`.rush/manifest.json` e `.rush/baseline.tar.gz`**, gravados pelo `install.sh`. O manifesto
+  guarda **dois** hashes por arquivo: `sha256` (o que está no disco) e `kit_sha256` (o que o kit
+  enviou naquela versão). É o par que torna a comparação de três vias possível — `local ≠
+  enviado` responde "o projeto mexeu", `enviado-antes ≠ enviado-agora` responde "o kit mexeu". O
+  baseline guarda a cópia pristina de cada arquivo do kit, que é o que dá ao merge uma base em
+  vez de adivinhação. Ambos devem ser commitados; quem clonar o projeto precisa deles.
+- **`update.sh <target> [--dry-run] [--adopt] [--json] [--finalize]`** na raiz do kit. Roda a
+  partir do kit **novo** contra o projeto, e não o contrário: só a versão que introduz uma
+  mudança traz a migração que explica o que ela significa para um config escrito antes dela.
+  Aplica tudo que é decidível, faz backup do que substitui, e para no que exige julgamento sem
+  tocar no arquivo de trabalho.
+- **Migrações de config** em `.rush/migrations/<versão>.py`, aplicadas em ordem para toda versão
+  em `(instalada, nova]`. A pergunta que cada uma faz não é "qual é o novo default" e sim **"o
+  projeto escolheu esse valor ou herdou o default de uma versão anterior?"** — herdado acompanha o
+  kit, escolhido fica e é reportado. As duas primeiras são reais: `0.5.0` (o `branch_pattern` que
+  deixou de ser decorativo e passaria a negar todo commit em `main` num projeto que carregava a
+  string default) e `0.6.0` (os `budgets`, liberando os herdados e mantendo um `claude_md: 40` que
+  alguém apertou de propósito).
+- **`/rush-update`** — a skill que resolve os conflitos. Merge em três vias: aplica o que o kit
+  mudou (`base` → `new`) por cima do que o projeto mudou (`base` → `local`), carregando a
+  *intenção* da customização quando a versão nova reestruturou a seção onde ela morava. Faz merge
+  de prompt e template apenas; script e hook param para um humano mesmo sendo legíveis, porque um
+  merge sintaticamente válido e semanticamente errado no `guard-edit.sh` bloqueia toda escrita no
+  projeto — inclusive a própria correção. Termina num portão de verificação obrigatório (lint de
+  portabilidade, `doctor`, `validate-artifacts --all`, `eval --all`) e restaura do backup se algo
+  regrediu, em vez de insistir no merge.
+- **Check `kit_update` no `doctor.sh`** — reporta update pela metade, manifesto ausente (projeto
+  anterior ao rastreamento; o próximo update precisa de `--adopt`), ou `.rush/VERSION` discordando
+  do manifesto. Um projeto preso entre duas versões era invisível até agora.
+- **`docs/updating.md`** e o caso de eval `kit-update-never-touches-project-files`, que monta duas
+  versões do kit e um projeto em `mktemp -d` e prova o contrato: config, constitution, `CLAUDE.md`,
+  specs e arquivo `seed` intactos; arquivo do kit não tocado acompanha o kit; arquivo customizado
+  fica como está e vira conflito.
+
+### Changed
+
+- **`install.sh`** grava o manifesto e o baseline ao final, e aponta para o `update.sh` em vez de
+  sugerir `--force` para atualizar.
+- **`.rush/VERSION` só é escrito no `--finalize`**, junto do manifesto. Um projeto com conflito
+  pendente não pode anunciar a versão nova enquanto ainda roda prompts da antiga — e o manifesto
+  só registra o arquivo mergeado como divergente de propósito se for escrito *depois* do merge.
+  Sem essa ordem, o update seguinte veria o arquivo como pristino e sobrescreveria o merge.
+- **`.gitignore`** passa a cobrir `.rush/backups/` e `.rush/.update/` (temporários), deixando
+  `manifest.json` e `baseline.tar.gz` versionados de propósito.
+
 ## 0.6.0
 
 Quatro mudanças de fluxo, todas vindas de usar o kit num projeto de verdade: teto de linhas

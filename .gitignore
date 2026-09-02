@@ -7,3 +7,8 @@ node_modules/
 .rush/state.json
 # Local scratch written by /rush-context-save — one session's context, not a project artifact.
 .rush/memory/sessions/
+# Update working state: backups of what an update replaced, and the three-way staging area.
+# .rush/manifest.json and .rush/baseline.tar.gz ARE committed — whoever clones the project
+# needs them to be able to update it.
+.rush/backups/
+.rush/.update/

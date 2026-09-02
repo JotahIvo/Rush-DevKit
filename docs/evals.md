@@ -66,7 +66,7 @@ ou falha interna.
 ## Estado atual: runner + casos iniciais
 
 `.rush/scripts/eval.sh` está implementado, e o kit já vem com uma suíte em `.rush/evals/` —
-24 casos cobrindo os agentes de maior risco e o próprio kit:
+25 casos cobrindo os agentes de maior risco e o próprio kit:
 
 | Agente | Casos | O que guardam |
 |---|---|---|
@@ -74,7 +74,7 @@ ou falha interna.
 | `rush-features` | 4 | integration map válido, consumo sem provedor, jornada sem teste, provedor duplicado |
 | `rush-implement` | 4 | não promove a si mesmo, edição de teste bloqueada, não afrouxa teste para passar, para no orçamento de tentativas |
 | `rush-analyze` | 3 | violação de MUST da constitution vira NO-GO, scripts verdes não bastam para GO, critério não coberto é blocker |
-| `kit` | 4 | construto que quebra bash 3.2, referência de skill a script/template inexistente, `branch_pattern` aplicado de fato (e desligável), cursor de feature seguindo a atenção e não a criação |
+| `kit` | 5 | construto que quebra bash 3.2, referência de skill a script/template inexistente, `branch_pattern` aplicado de fato (e desligável), cursor de feature seguindo a atenção e não a criação, atualização que nunca toca em arquivo do projeto |
 | `rush` | 2 | path sensível força L mesmo em diff de uma linha, correção trivial fica em S |
 | `rush-quick` | 1 | escala em vez de empurrar quando aparece migration/contrato/dependência/path sensível |
 | `rush-pr` | 1 | feature incompleta nunca é apresentada como pronta, por mais que os commits pareçam terminados |
@@ -83,7 +83,7 @@ ou falha interna.
 Rodando hoje, no kit limpo:
 
 ```
-total=24 passed=16 failed=0 manual=8
+total=25 passed=17 failed=0 manual=8
 ```
 
 (Esses números envelhecem — `.rush/scripts/eval.sh --all --json` devolve os atuais.)

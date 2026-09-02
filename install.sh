@@ -9,8 +9,16 @@
 # unless --force is given; the kit refuses to clobber a project's own CLAUDE.md, settings.json
 # or an already-generated .rush/config.json.
 #
+# It also records what it installed: `.rush/manifest.json` (the hash and ownership class of
+# every file the kit put there) and `.rush/baseline.tar.gz` (a pristine copy of each one). That
+# pair is what makes `update.sh` possible later — without a record of what the kit shipped, an
+# update cannot tell a file the project customised from one it never touched, and the only
+# choices left are to skip everything or overwrite everything.
+#
 # After installing, run `/rush-init` (existing codebase) or `/rush-new` (new product) inside
-# the target repo with Claude Code.
+# the target repo with Claude Code. To move an already-installed project to a newer kit, use
+# `update.sh` — not this script with --force, which would overwrite the project's own config,
+# memory and eval cases.
 set -euo pipefail
 
 KIT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -100,10 +108,28 @@ if [ "$skipped" -gt 0 ] && [ "$FORCE" -eq 0 ]; then
 fi
 
 if [ "$DRY_RUN" -eq 0 ]; then
+  if command -v python3 >/dev/null 2>&1; then PY=python3
+  elif command -v python >/dev/null 2>&1; then PY=python
+  else PY=""; fi
+  if [ -n "$PY" ] && [ -f "$KIT_DIR/.rush/scripts/lib/kitfiles.py" ]; then
+    version="$(cat "$KIT_DIR/.rush/VERSION" 2>/dev/null || echo "")"
+    "$PY" "$KIT_DIR/.rush/scripts/lib/kitfiles.py" snapshot \
+      --kit "$KIT_DIR" --target "$TARGET" --version "$version" >/dev/null
+    say ""
+    say "Recorded .rush/manifest.json and .rush/baseline.tar.gz (kit $version) so this project"
+    say "can be updated later with update.sh without losing its own configuration."
+  else
+    say ""
+    say "warning: python3 not found — .rush/manifest.json was NOT written, so update.sh will"
+    say "         need --adopt on this project."
+  fi
+
   say ""
   say "Next steps, inside $TARGET with Claude Code:"
   say "  /rush-init              existing codebase — detect, explore, interview, configure"
   say "  /rush-new \"<idea>\"      new product — discovery, stack, scaffold, MVP specs"
   say ""
   say "Then verify with: .rush/scripts/doctor.sh"
+  say ""
+  say "Later, to move to a newer kit: clone it and run  ./update.sh $TARGET"
 fi

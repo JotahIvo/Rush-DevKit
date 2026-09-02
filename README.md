@@ -66,6 +66,19 @@ Depois, dentro do seu repositório, no Claude Code:
 
 Verifique a instalação com `.rush/scripts/doctor.sh`.
 
+Para levar um projeto já instalado para uma versão nova do kit, **não** rode o `install.sh` de
+novo — ele tem dois modos e os dois estão errados para isso (um pula tudo que existe, o outro
+sobrescreve o seu `config.json` e a sua memória). O comando é o `update.sh`:
+
+```bash
+git clone https://github.com/<voce>/rush-devkit.git /tmp/rush-devkit
+/tmp/rush-devkit/update.sh /caminho/do/seu/repo --dry-run
+```
+
+Ele traz os arquivos do kit, preserva o que é do projeto, migra o `config.json` onde a semântica
+de uma chave mudou, e deixa para o `/rush-update` só o que exige julgamento. Detalhes em
+[`docs/updating.md`](docs/updating.md).
+
 ## O fluxo
 
 ```
@@ -109,6 +122,9 @@ orçamento de tentativas e escalação) · `rush-quick` (caminho M)
 
 **Sessão** — `rush-context-save` / `rush-context-load` (salva e recupera o que existe só na
 conversa: decisões, o que foi descartado e por quê, a thread em aberto)
+
+**Manutenção** — `rush-doctor` (saúde) · `rush-update` (merge em três vias do que a atualização do
+kit deixou em conflito)
 
 **Subagents** — `rush-explorer` (leitura de código, read-only) · `rush-researcher` (pesquisa com
 fontes) · `rush-verifier` (o único que promove uma task a `done`)
@@ -161,6 +177,7 @@ Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` 
 | [Integração](docs/integration.md) | Integration map, shared contracts, journey tests |
 | [Configuração](docs/configuration.md) | Todas as chaves do `config.json` |
 | [Evals](docs/evals.md) | Como o kit é avaliado e melhora com o uso |
+| [Atualização](docs/updating.md) | Como levar um projeto já adaptado para uma versão nova do kit |
 | [Plano do kit](docs/plano-do-kit.md) | O documento de design que originou este projeto |
 
 ## Princípios

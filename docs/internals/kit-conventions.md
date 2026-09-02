@@ -38,6 +38,10 @@ disable-model-invocation: false    # true para skills com efeito colateral pesad
 | `sonnet` | `rush-quick`, `rush-implement`, `rush-contracts`, `rush-prototype`, `rush-retro`, `rush-pr`, `rush-explorer`, `rush-researcher` |
 | `haiku` | `rush` (triagem), `rush-doctor`, `rush-brief`, `rush-context-save`, `rush-context-load`, `rush-verifier` |
 
+`rush-update` é `opus`: fazer merge de prompt é julgamento com alta alavancagem e saída pequena —
+um merge ruim num `SKILL.md` é invisível para todo check automático e envenena toda execução
+futura daquela skill.
+
 Quem tem acesso ao tier mais alto pode trocar `model: opus` por `model: fable` em `rush-init` e
 `rush-architect` — são os dois pontos de maior alavancagem. Nunca hardcodar model ID completo.
 
