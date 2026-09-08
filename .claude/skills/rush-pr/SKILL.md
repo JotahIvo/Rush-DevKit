@@ -29,10 +29,13 @@ Read before acting, in this order:
 3. `.rush/scripts/pr-commits.sh <spec-id> --json` — every commit since the spec's directory was
    created, and each feature's done-check summary. This is the only source of "what happened" —
    never reconstruct it by reading `git log` yourself in prose.
-4. `specs/<spec-id>/pitch.md` and `prd.md`, if present — the problem and goals, for sections that
-   need them (e.g. a "Why" or "Context" section, if your preferences ask for one).
-5. Each feature's `done-contract.md` — Acceptance Criteria, for sections that summarise what the
-   PR delivers against what was promised.
+4. `specs/<spec-id>/pitch.md` — the problem and goals, for sections that need them (a "Why" or
+   "Context" section, if your preferences ask for one). The pitch, not the PRD: the pitch already
+   says in a page what the PRD says in twenty, and a PR description is not the place to re-derive
+   the product definition.
+5. Each feature's `done-contract.md` — Acceptance Criteria only, for sections that summarise what
+   the PR delivers against what was promised. `pr-commits.sh` already gave you the done-check
+   status; do not re-run or re-read it per feature.
 
 ## Guardrails
 

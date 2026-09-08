@@ -97,26 +97,86 @@ que a configuração pede.
 
 ## `budgets`
 
-Lidos por `.rush/scripts/validate-artifacts.sh`. **Todos nascem `null`, ou seja: nenhum documento
-gerado tem teto de linhas.** Um documento tem o tamanho que o conteúdo dele honestamente exige, e
-um PRD ou uma arquitetura cortados para caber num número só empurram a decisão que faltou para a
-cabeça de alguém.
+Lidos por `.rush/scripts/validate-artifacts.sh`. **Ligados por padrão desde a 0.8.0** — antes disso
+nasciam todos `null`.
 
-O mecanismo continua existindo porque um projeto pode genuinamente querer um teto num arquivo
-específico — o caso típico é o `CLAUDE.md`, que todo agente lê inteiro em toda sessão. Setar a
-chave reativa a checagem para aquele arquivo. Quando um orçamento assim dispara, a leitura certa é
-"este documento está tentando ser dois", nunca "sobe o número".
+A 0.6.0 os tinha desligado por um motivo que continua verdadeiro: um documento tem o tamanho que o
+conteúdo honestamente exige, e um PRD cortado para caber num número só empurra a decisão que faltou
+para a cabeça de alguém. O que faltava naquela conta era o segundo custo. Um artefato longo demais
+para alguém ler é passado de olho uma vez pelo humano e depois **relido inteiro por todo comando
+seguinte do fluxo** — o comprimento é pago duas vezes, e é o segundo pagamento que encerra a sessão
+antes da feature. Os números abaixo saíram de artefatos reais que passaram do ponto.
+
+Quando um orçamento dispara, a leitura certa é "este documento está tentando ser dois" — divida, ou
+mova o detalhe para o artefato que é dono dele. Nunca "sobe o número". `null` levanta o teto de uma
+chave específica.
+
+**Projetos que vêm de uma versão anterior não são alterados**: a migração 0.8.0 relata os números e
+deixa a escolha, porque reprovar uma validação que passava ontem, em arquivos que ninguém tocou,
+não é migração.
 
 | Chave | Padrão | Artefato |
 |---|---|---|
-| `budgets.pitch` | `null` | `pitch.md` |
-| `budgets.prd` | `null` | `prd.md` (tanto o do spec quanto o de uma feature) |
-| `budgets.spec` | `null` | `spec.md` de uma feature |
-| `budgets.plan` | `null` | `plan.md` de uma feature |
-| `budgets.architecture` | `null` | `specs/<spec-id>/architecture.md` (documento completo) |
-| `budgets.architecture_summary` | `null` | o resumo por-spec dentro de `.rush/memory/architecture.md` |
-| `budgets.claude_md` | `null` | `CLAUDE.md` do projeto |
-| `budgets.constitution` | `null` | `.rush/memory/constitution.md` |
+| `budgets.pitch` | `80` | `pitch.md` |
+| `budgets.prd` | `400` | `prd.md` do spec (o de feature está desligado — veja `artifacts`) |
+| `budgets.spec` | `150` | `spec.md` de uma feature |
+| `budgets.plan` | `100` | `plan.md` de uma feature |
+| `budgets.tasks` | `200` | `tasks.md` de uma feature, Session Log incluído |
+| `budgets.done_contract` | `120` | `done-contract.md` de uma feature |
+| `budgets.architecture` | `250` | `specs/<spec-id>/architecture.md` (documento completo) |
+| `budgets.architecture_summary` | `40` | o resumo por-spec dentro de `.rush/memory/architecture.md` |
+| `budgets.claude_md` | `60` | `CLAUDE.md` do projeto |
+| `budgets.constitution` | `150` | `.rush/memory/constitution.md` |
+
+`budgets.tasks` merece uma nota: o `tasks.md` é o arquivo mais relido da vida de uma feature —
+`/rush-implement` abre em toda sessão, `/rush-brief` e `/rush-retro` também. É onde comprimento
+composta mais rápido. Quando ele estoura, quase sempre é o Session Log tendo virado changelog: ele
+é um diário, condense ou arquive as entradas velhas.
+
+## `artifacts`
+
+Quais artefatos **opcionais** este projeto gera. Tudo aqui nasce desligado, porque um artefato que
+repete outro é escrito uma vez e relido em todo comando seguinte.
+
+| Chave | Valores | Padrão | Consequência |
+|---|---|---|---|
+| `artifacts.feature_prd` | `"on"` \| `"off"` | `"off"` | Se `/rush-spec` e `new-feature.sh` também produzem um `prd.md` por feature. |
+
+Desligado desde a 0.8.0. O `prd.md` de feature repetia, em prosa, o PRD pai e o `spec.md` da própria
+feature — numa spec real foram 34 mil palavras de cópia, geradas uma vez e relidas por `analyze`,
+`implement`, `review` e `retro`. A parte insubstituível dele — o mapa dos requisitos da feature de
+volta para os ids do PRD pai — virou uma seção **Traceability** que o `validate-artifacts.sh`
+**exige** no `spec.md` sempre que não existe `prd.md`. Nada se perde por deixar desligado.
+
+Ligue (`"on"`) num projeto cujas features são entregues a quem lê o PRD e mais nada.
+
+## `context`
+
+Quanto cada comando carrega antes de começar a trabalhar. Existe porque o custo dominante de um
+fluxo spec-driven não é o que o agente escreve, é o que todo comando relê primeiro.
+
+| Chave | Padrão | Consequência |
+|---|---|---|
+| `context.pack_first` | `true` | Comandos leem `context-pack.sh --json` em vez de abrir `config.json`, `constitution.md`, `integration-map.md`, `shared-contracts/`, `architecture.md` e os ADRs em cheio. `false` volta a ler os arquivos — correto, e cerca de dez vezes mais caro por comando. |
+| `context.questions_open_only` | `true` | Lê só as perguntas ainda abertas (`questions.sh --open`). O `questions.md` é append-only por design e cresce sem limite; as respondidas são as mais longas e as menos relevantes ao trabalho em curso. |
+| `context.skip_analysis_when_unchanged` | `true` | Deixa o `/rush-analyze` julgar só o que mudou desde o último GO, guiado pelo `analysis-state.sh`. Os scripts determinísticos rodam inteiros de qualquer forma; só o passe de julgamento é estreitado, e mudança na constitution, no integration-map ou num contrato força o passe completo. |
+
+## `models`
+
+Override de modelo por comando. Toda chave nasce `null`, o que significa "mantém o modelo do
+frontmatter da própria skill".
+
+Existe porque os comandos mais caros do kit são também os mais repetidos: num plano com cota fixa,
+o modelo escolhido para `/rush-spec` e `/rush-analyze` decide quantas features cabem numa semana.
+Um ajuste de economia que se sustenta na prática é **`spec` e `analyze` em sonnet, `architect` em
+opus** — a passagem de arquitetura é onde uma decisão errada é mais cara de desfazer, e ela roda
+uma vez por spec, não uma vez por feature.
+
+```json
+"models": { "spec": "sonnet", "analyze": "sonnet", "architect": null }
+```
+
+Chaves: `pitch`, `prd`, `architect`, `features`, `spec`, `analyze`, `implement`, `review`.
 
 ## `verification`
 

@@ -19,13 +19,28 @@ declaring anything done (verifier), or approving the result (review).
 
 Session ritual first — always, even mid-feature:
 
-1. `.rush/scripts/session-start.sh --json` — current feature, task counts, open questions, dirty
-   tree, last Session Log entry, baseline test command.
-2. `.rush/config.json` — autonomy, gates, commit policy, commands.
+1. `.rush/scripts/session-start.sh --json` — current feature, task counts, dirty tree, last
+   Session Log entry, baseline test command.
+2. `.rush/scripts/context-pack.sh <feature-id> --json` — **one read that replaces six**: the
+   config keys you branch on, the constitution's binding lines, this feature's row of the
+   integration map (provides, consumes and from whom, who breaks if it changes, the journeys
+   crossing it), contract **paths**, each ADR's decision, the open questions, this feature's open
+   debt, artifact line counts against budget, task counts.
 3. `specs/<feature-id>/`: `spec.md`, `plan.md`, `tasks.md` (status, verify commands, and its own
-   Session Log — there is no separate `progress.md`), `done-contract.md`.
-4. `specs/integration-map.md` + `specs/shared-contracts/` — the interfaces you must honour.
-5. `.rush/memory/constitution.md` and the spec's `architecture.md` + ADRs.
+   Session Log — there is no separate `progress.md`), `done-contract.md`. These four are the
+   subject of the work, not background: read them in full.
+4. The contract files the pack lists — but only the ones the task in front of you actually touches.
+   A field name is a promise, and you keep it by reading the contract you are implementing against,
+   not all of them.
+
+Then open in full **only** what the pack named and you are about to act against. Opening
+`constitution.md`, `integration-map.md`, every shared contract and every ADR in case one matters is
+the habit that turned one feature into several sessions — that reading repeats at every command in
+the flow. (If the pack reports `headings_only` for the constitution, that one does need opening.)
+
+**Resuming mid-feature costs nothing extra.** `tasks.md`'s Session Log plus the pack is the whole
+handoff — do not re-read the spec set from scratch each session when the log already says where
+you stopped and why.
 
 Then run the **baseline check** (`config.json → commands.test`) before writing anything. If the
 baseline is already red, stop and report: you cannot attribute failures to your own work from a
@@ -76,6 +91,10 @@ pattern, match it rather than introducing a second way of doing the same thing.
 **3. Observe.** Dispatch `rush-verifier` for this task. It runs the task's `verify:` command plus
 lint/typecheck/build as configured, and it — not you — decides pass or fail. Read only the
 failure output; passing checks are silent by design.
+
+Give the verifier the feature id and task id, and nothing else. It reads `tasks.md` and
+`config.json` itself. Pasting the diff, the spec, or your reasoning into the dispatch copies your
+whole context into a second one, which is the opposite of why it runs in its own.
 
 **4. Adjust.** On failure: form a hypothesis about the *cause* before changing anything, then fix
 the cause. Do not shotgun changes. Count the attempt. On reaching the attempt budget, stop and

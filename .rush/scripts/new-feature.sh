@@ -52,7 +52,15 @@ active feature.
                 already in that shape.
   --title "..." Human title for the feature. Defaults to the slug with
                 hyphens turned into spaces and each word capitalised.
-  --no-prd      Do not seed prd.md. For the M-scope path (/rush-quick),
+  --prd         Seed a feature-level prd.md as well. Off by default since
+                0.8.0: its Overview/Requirements/Out of Scope restated the
+                parent PRD and spec.md, and every downstream command paid to
+                re-read the copy. What was load-bearing in it — the mapping
+                from this feature's requirements back to the parent's — is a
+                Traceability section inside spec.md now. Set
+                artifacts.feature_prd to "on" in .rush/config.json to make
+                this the default again for a project that wants it.
+  --no-prd      Do not seed prd.md (the default). For the M-scope path (/rush-quick),
                 which has no spec-level PRD to trace a feature PRD back to —
                 spec.md plus done-contract.md carry that path entirely.
   --no-activate Create/resolve the feature WITHOUT pointing
@@ -71,7 +79,7 @@ json_mode="false"
 title_arg=""
 title_given="false"
 activate="true"
-with_prd="true"
+with_prd=""   # unset until a flag or config decides; see resolution below
 spec_id_raw=""
 slug_raw=""
 while [ "$#" -gt 0 ]; do
@@ -80,6 +88,7 @@ while [ "$#" -gt 0 ]; do
     --json) json_mode="true"; shift ;;
     --no-activate) activate="false"; shift ;;
     --no-prd) with_prd="false"; shift ;;
+    --prd) with_prd="true"; shift ;;
     --title)
       [ "$#" -ge 2 ] || { echo "new-feature.sh: --title requires a value" >&2; exit 2; }
       title_arg="$2"; title_given="true"; shift 2 ;;
@@ -210,6 +219,17 @@ print(json.dumps(out, ensure_ascii=False))
 PYEOF
 
 set +e
+if [ -z "$with_prd" ]; then
+  # "off" is the shipped default; a project that wants the feature-level PRD
+  # back sets artifacts.feature_prd to "on" once, rather than remembering a
+  # flag at every new-feature call.
+  if [ "$(rush_config artifacts.feature_prd off 2>/dev/null || echo off)" = "on" ]; then
+    with_prd="true"
+  else
+    with_prd="false"
+  fi
+fi
+
 "$py" "$py_src" "$root" "$spec_dir_rel" "$spec_id" "$slug_raw" "$title_arg" "$title_given" "$date_str" "$with_prd" > "$result_file"
 status=$?
 set -e

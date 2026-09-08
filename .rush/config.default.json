@@ -1,14 +1,27 @@
 {
   "version": "1.0.0",
-  "language": { "docs": "en", "code_comments": "en", "commits": "en" },
+  "language": {
+    "docs": "en",
+    "code_comments": "en",
+    "commits": "en"
+  },
   "git": {
     "allow_commit": true,
     "allow_push": false,
     "commit_convention": "conventional",
     "branch_pattern": "feat/NNN-slug"
   },
-  "code": { "comments_policy": "minimal", "test_first": false },
-  "commands": { "test": null, "lint": null, "build": null, "format": null, "typecheck": null },
+  "code": {
+    "comments_policy": "minimal",
+    "test_first": false
+  },
+  "commands": {
+    "test": null,
+    "lint": null,
+    "build": null,
+    "format": null,
+    "typecheck": null
+  },
   "gates": {
     "architecture": "human",
     "spec": "human",
@@ -26,19 +39,49 @@
     "blocked_commands": [],
     "secret_scan_before_commit": true
   },
-  "triage": { "sensitive_forces_L": true, "max_files_for_S": 3 },
+  "triage": {
+    "sensitive_forces_L": true,
+    "max_files_for_S": 3
+  },
   "budgets": {
+    "pitch": 80,
+    "prd": 400,
+    "spec": 150,
+    "plan": 100,
+    "tasks": 200,
+    "done_contract": 120,
+    "architecture": 250,
+    "architecture_summary": 40,
+    "claude_md": 60,
+    "constitution": 150
+  },
+  "artifacts": {
+    "feature_prd": "off"
+  },
+  "context": {
+    "pack_first": true,
+    "questions_open_only": true,
+    "skip_analysis_when_unchanged": true
+  },
+  "models": {
     "pitch": null,
     "prd": null,
+    "architect": null,
+    "features": null,
     "spec": null,
-    "plan": null,
-    "architecture": null,
-    "architecture_summary": null,
-    "claude_md": null,
-    "constitution": null
+    "analyze": null,
+    "implement": null,
+    "review": null
   },
-  "verification": { "check_timeout_seconds": 600, "stale_spec_commits": 10 },
-  "doctor": { "stale_days": 14 },
-  "memory": { "archive_after_days": 90 },
+  "verification": {
+    "check_timeout_seconds": 600,
+    "stale_spec_commits": 10
+  },
+  "doctor": {
+    "stale_days": 14
+  },
+  "memory": {
+    "archive_after_days": 90
+  },
   "ai_features": false
 }

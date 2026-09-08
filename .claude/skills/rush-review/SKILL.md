@@ -19,14 +19,22 @@ gate on the human's behalf.
 
 ## Inputs
 
-1. `.rush/config.json` — language, gates.
+1. `.rush/scripts/context-pack.sh <feature-id> --json` — **one read that replaces six**: the
+   config keys you branch on, the constitution's binding lines, this feature's row of the
+   integration map (provides, consumes and from whom, who breaks if it changes, the journeys
+   crossing it), contract **paths**, each ADR's decision, the open questions, this feature's open
+   debt, artifact line counts against budget, task counts. It replaces items 1, 3, 4 and 7 of what this
+   command used to open by hand — including the debt and the open questions, already filtered to
+   this feature.
 2. `specs/<feature-id>/`: `spec.md`, `plan.md`, `tasks.md` (its Session Log covers what used to be
-   `progress.md`), `done-contract.md`.
-3. The spec's `architecture.md`, its ADRs, and `.rush/memory/constitution.md`.
-4. `specs/integration-map.md` — what this feature promised to provide and consume.
-5. The diff: commits attributable to the feature, or the working tree if not yet committed.
-6. `.rush/scripts/done-check.sh <feature-id> --json` — the objective state before you start.
-7. `.rush/memory/debt.md` and the spec's `questions.md` — what was consciously deferred.
+   `progress.md`), `done-contract.md`. The subject of the review; read in full.
+3. `.rush/scripts/done-check.sh <feature-id> --json` — the objective state before you start.
+4. The diff: commits attributable to the feature, or the working tree if not yet committed. This is
+   the largest thing you will read, so read it once and walk it — never re-open a file you already
+   have in the diff.
+
+Open in full only what the pack named and you are about to act against — not
+`constitution.md`, `integration-map.md`, every shared contract and every ADR in case one matters.
 
 ## Guardrails
 

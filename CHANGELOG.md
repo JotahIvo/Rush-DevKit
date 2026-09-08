@@ -1,5 +1,84 @@
 # Changelog
 
+## 0.8.0
+
+O kit gastava mais contexto lendo do que escrevendo, e ninguém tinha medido isso.
+
+O número que abriu a investigação: uma spec real de 12 features acumulou **221 mil palavras** em
+`specs/`. Não é o problema — é o inventário. O problema é que cada comando do fluxo abria o
+`config.json`, a `constitution.md`, o `integration-map.md`, o `shared-contracts/` inteiro, a
+`architecture.md` da spec e os ADRs **em cheio, do zero, toda vez**. Nessa spec isso dava 15.636
+palavras de leitura por invocação, das quais menos de 8% mudavam alguma decisão daquele comando.
+Com `/rush-spec`, `/rush-analyze`, `/rush-implement` e `/rush-review` rodando por feature, o mesmo
+material era relido dezenas de vezes por spec — e o fim de sessão chegava antes do fim da feature.
+
+Dois agravantes vieram junto. O `prd.md` de feature repetia o PRD pai e o próprio `spec.md`: 34 mil
+palavras de cópia, geradas uma vez e relidas por todo comando seguinte. E os `budgets`, que a 0.6.0
+tinha zerado por um motivo correto — documento cortado para bater número só empurra a decisão que
+faltou para a cabeça de alguém —, deixaram de existir na prática: sem teto, `spec.md` de feature
+chegou a média de 3.334 palavras, e a guardrail "density over completeness" virou texto sem
+mecanismo atrás.
+
+### Added
+
+- **`.rush/scripts/context-pack.sh [<feature-id>] [--spec <id>] [--json]`** — uma leitura no lugar
+  de seis. Entrega as chaves de config em que um comando ramifica, as **linhas vinculantes** da
+  constitution (não o ensaio inteiro), a linha do `integration-map.md` **desta** feature — o que
+  ela provê, o que consome e de quem, **quem quebra se o que ela provê mudar**, e as jornadas que a
+  cruzam —, os **caminhos** dos contratos (nunca o corpo deles), a *decisão* de cada ADR, a lista
+  de seções da `architecture.md`, as perguntas ainda abertas, o débito desta feature, a contagem de
+  linhas de cada artefato contra o seu budget e as tasks por status. Na spec medida: **1.212
+  palavras no lugar de 15.636** — 92% a menos, por invocação.
+- **`.rush/scripts/questions.sh [<spec-id>] --open|--list|--add|--answer|--archive-answered`** — o
+  `questions.md` é append-only de propósito, e por isso só cresce: o da spec medida tinha 130
+  entradas e 25.743 palavras, das quais 96 já respondidas. `--open` devolve as 34 que ainda
+  importam; `--archive-answered` move as antigas para `questions.archive.md` deixando um índice de
+  uma linha. Nada é apagado — só deixa de ser lido.
+- **`.rush/scripts/analysis-state.sh <feature-id> [--record GO|NO-GO] [--json]`** — grava a
+  impressão digital de tudo contra o que um veredito foi emitido, e na próxima rodada diz
+  exatamente o que mudou. É o que permite ao `/rush-analyze` julgar só o que se mexeu em vez de
+  reprocessar a feature inteira depois de uma correção de uma linha. A decisão de estreitar é do
+  script, não do agente: ele se invalida sozinho se a constitution, o integration-map ou qualquer
+  contrato da feature mudarem, ou se não houver GO anterior gravado.
+- **`artifacts.feature_prd`**, **`context.*`** e **`models.*`** no `config.json` (com schema e
+  migração 0.8.0).
+
+### Changed
+
+- **O `prd.md` de feature deixa de ser gerado** (`artifacts.feature_prd: "off"`). O que ele tinha
+  de insubstituível — o mapa dos requisitos da feature de volta para os ids do PRD pai — virou uma
+  seção **Traceability** obrigatória no `spec.md` sempre que não existe `prd.md`. O
+  `validate-artifacts.sh` cobra exatamente isso, então nada se perde por desligar. `new-feature.sh`
+  ganhou `--prd` para o caso contrário; `--no-prd` continua valendo e agora é o default.
+- **Budgets voltam ligados no `config.default.json`**, com números tirados de artefatos reais que
+  passaram do ponto, e **duas chaves novas**: `tasks` e `done_contract` — o `tasks.md` é o arquivo
+  mais relido da vida de uma feature, é onde comprimento composta mais rápido. Projetos existentes
+  **não** são alterados: a migração relata os números e deixa a escolha, porque reprovar uma
+  validação que passava ontem, em arquivos que ninguém tocou, não é migração.
+- **`/rush-analyze` ficou silencioso no verde.** Script que passa vira uma linha; só a falha é
+  citada verbatim. É a mesma regra que o `rush-verifier` já seguia — "success is silent, failure is
+  verbose" —, que estava escrita para o verificador e não para o analisador. E o passe de
+  julgamento pode ser delta, guiado pelo `analysis-state.sh`, com a obrigação de dizer quando foi.
+- **Onze skills tiveram a seção `Inputs` reescrita** para o pacote de contexto, com a regra
+  explícita de abrir em cheio **apenas** o que o pacote nomeou e contra o que se vai escrever.
+- **O preâmbulo de guardrails repetido em 13 skills** foi condensado de 5 itens para 3, sem perder
+  nenhuma regra.
+- **`/rush-implement`** passa ao `rush-verifier` só o id da feature e da task. Colar o diff, o spec
+  ou o raciocínio no despacho copia o contexto inteiro para dentro de um segundo contexto — o
+  oposto do motivo pelo qual ele roda isolado.
+- **`/rush-pr`** lê o `pitch.md` e não o `prd.md`: uma descrição de PR não é lugar de rederivar a
+  definição do produto.
+
+### Notes
+
+- As edições sob `.claude/` estão preparadas em `.rush/_incoming-0.8.0/dot-claude/` — o bridge do
+  desktop recusa escrita ali. Aplique com `python3 .rush/apply-0.8.0-claude-edits.py` (tem
+  `--dry-run`, faz backup `.pre-0.8.0` de cada arquivo substituído).
+- **`.rush/_incoming/` continua com o staging da 0.7.0 sem aplicar** — o `rush-update/SKILL.md`
+  nunca chegou em `.claude/skills/`, e algumas descrições ali divergem do que está instalado. O
+  staging da 0.8.0 foi semeado a partir do `.claude/` **vivo**, justamente para não herdar essa
+  divergência. Decida o que fazer com o da 0.7.0 antes de rodar o `update.sh` numa próxima versão.
+
 ## 0.7.0
 
 O kit não tinha caminho de atualização. `install.sh` tem dois modos e os dois estão errados para

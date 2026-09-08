@@ -7,6 +7,11 @@
      those live in done-contract.md now, merged with the checks that enforce them, so a criterion
      is never separated from what proves it. -->
 <!-- Filled by /rush-spec. Location: specs/{{FEATURE_ID}}/spec.md -->
+<!-- Since 0.8.0 this is normally the ONLY per-feature narrative artifact: the feature-level
+     prd.md is off by default (artifacts.feature_prd), because its Overview and Requirements
+     restated the parent PRD and this file, and every later command paid to read both. The part
+     that was load-bearing lives in Traceability below. Density over completeness still applies:
+     a shorter spec a human actually reads beats an exhaustive one they skim. -->
 
 # Spec: {{FEATURE_TITLE}}
 
@@ -46,6 +51,22 @@
      without this is half a spec. -->
 - {{EDGE_CASE_1}} → {{EXPECTED_BEHAVIOUR_1}}
 - {{EDGE_CASE_2}} → {{EXPECTED_BEHAVIOUR_2}}
+
+## Traceability
+
+<!-- The one thing the old feature-level prd.md carried that nothing else did. One row per
+     requirement of the parent PRD this feature answers — id, and where the answer lives here.
+     Do NOT restate the requirement's text: the id is the link, and a copied sentence is a copy
+     that goes stale the moment the parent is edited.
+     Below the table, name the parent requirements in this feature's range that it does NOT
+     cover, and which feature covers them instead — that line is what stops two features each
+     assuming the other handled it. -->
+
+| Parent requirement | Where it is answered here |
+|---|---|
+| {{PARENT_REQ_ID}} | {{SECTION_OR_INTERFACE}} |
+
+**Not covered here**: {{PARENT_REQ_IDS}} — {{OWNING_FEATURE_IDS}}.
 
 ## Out of Scope
 

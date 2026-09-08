@@ -328,55 +328,97 @@
     "budgets": {
       "type": "object",
       "additionalProperties": false,
-      "description": "Optional maximum line counts for generated artifacts, enforced by validate-artifacts.sh. Every one defaults to null, meaning NO limit: a document is as long as its content honestly requires, and a PRD or an architecture truncated to hit a number just moves the missing decisions into someone's head. Set a key only where a project genuinely wants a ceiling on one specific file — CLAUDE.md, which every agent reads in full on every run, is the usual case. A budget that fires should be read as 'this document is trying to be two documents', never as 'raise the number'.",
+      "description": "Maximum line counts for generated artifacts, enforced by validate-artifacts.sh. Shipped ON since 0.8.0, with defaults chosen from real specs that ran long: an artifact nobody has time to read gets skimmed by the human and re-read in full by every later command, so length is paid for twice. A budget that fires means 'this document is trying to be two documents' — split it, or move the detail to the artifact that owns it. It never means 'raise the number'. Set a key to null to lift its ceiling; existing projects keep whatever they already had, since the 0.8.0 migration does not overwrite a configured value.",
       "properties": {
         "pitch": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for pitch.md. Exceeding it means the pitch is trying to also be a PRD. null (the default) means no limit.",
-          "default": null
+          "default": 80
         },
         "prd": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for prd.md. Exceeding it usually means requirements should be split across features. null (the default) means no limit — a spec-level PRD is meant to be complete.",
-          "default": null
+          "default": 400
         },
         "spec": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for a single feature's spec.md. Exceeding it is a signal the feature is too big and should be split (rush-spec is instructed to say so rather than silently overshoot). null (the default) means no limit.",
-          "default": null
+          "default": 150
         },
         "plan": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for a single feature's plan.md. null (the default) means no limit.",
-          "default": null
+          "default": 100
         },
         "architecture": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for a spec's own, complete specs/<spec-id>/architecture.md. null (the default) means no limit.",
-          "default": null
+          "default": 250
         },
         "architecture_summary": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for one spec's condensed digest inside the shared .rush/memory/architecture.md (not the whole file, which accumulates one digest per spec and has no single sensible ceiling). Must stay much smaller than the 'architecture' budget it points back to — it is a pointer, never a copy. null (the default) means no limit, though this one stays short by instruction in rush-architect regardless.",
-          "default": null
+          "default": 40
         },
         "claude_md": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for the project's CLAUDE.md. Kept tight so it stays something an agent actually reads in full every session rather than skims. null (the default) means no limit.",
-          "default": null
+          "default": 60
         },
         "constitution": {
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "minimum": 1,
           "description": "Max lines for .rush/memory/constitution.md, the binding project principles document. null (the default) means no limit.",
-          "default": null
+          "default": 150
+        },
+        "tasks": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Max lines for a feature's tasks.md, its Session Log included. This file is re-read by every implement, brief and retro run, so it is the artifact where length costs the most. Exceeding the budget usually means the Session Log has become a changelog — it is a diary; archive or condense old entries. Default 200.",
+          "default": 200
+        },
+        "done_contract": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1,
+          "description": "Max lines for a feature's done-contract.md. Exceeding it usually means acceptance criteria are being restated as prose rather than written as the check that enforces them. Default 120.",
+          "default": 120
         }
       },
       "default": {
@@ -449,6 +491,114 @@
       "type": "boolean",
       "description": "Declares whether the PROJECT ITSELF (the product being built, not the Rush DevKit harness) ships AI/LLM-powered features. When true, rush-architect and rush-spec apply extra scrutiny appropriate to AI features (prompt injection surface, model fallback behaviour, cost/latency budgets) and detect-stack.sh's ai_sdks field becomes a meaningful signal rather than noise. This never enables or configures the AI used to run the kit's own agents — that is fixed by each skill's frontmatter, not by this file.",
       "default": false
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Which optional artifacts this project generates. Everything here is off by default because an artifact that restates another one is generated once and then re-read on every later command.",
+      "properties": {
+        "feature_prd": {
+          "enum": [
+            "on",
+            "off"
+          ],
+          "default": "off",
+          "description": "Whether /rush-spec and new-feature.sh also produce a feature-level prd.md. Off since 0.8.0: its Overview, Requirements and Out of Scope restated the parent PRD and the feature's own spec.md, and analyze, implement and review each paid to read the copy. The part of it that was load-bearing — the map from this feature's behaviour back to the parent PRD's requirement ids — is a required Traceability section in spec.md whenever prd.md is absent, so nothing is lost by leaving this off. Set it to \"on\" for a project whose features are handed to people who read the PRD and nothing else."
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "How much a command loads before it starts working. These exist because the dominant cost of a spec-driven run is not what the agent writes, it is what every command re-reads first.",
+      "properties": {
+        "pack_first": {
+          "type": "boolean",
+          "default": true,
+          "description": "Read .rush/scripts/context-pack.sh --json instead of opening config.json, constitution.md, integration-map.md, shared-contracts/, architecture.md and the ADRs in full. The pack carries the binding constitution lines, this feature's own row of the integration map, contract PATHS, and ADR decisions — enough to act on, with the paths to open anything it only summarised. Set false to go back to reading the files themselves, which is correct but costs roughly ten times as much per command."
+        },
+        "questions_open_only": {
+          "type": "boolean",
+          "default": true,
+          "description": "Read only unanswered entries from a spec's questions.md (via questions.sh --open). questions.md is append-only by design and grows without bound; the answered entries are the longest and the least relevant to work in progress. Set false to read the whole log."
+        },
+        "skip_analysis_when_unchanged": {
+          "type": "boolean",
+          "default": true,
+          "description": "Let /rush-analyze compare artifact fingerprints against the last GO it recorded and judge only what changed since. A full re-judgement of an untouched artifact returns the same verdict it returned last time, at full cost. The deterministic scripts run in full every time regardless — only the judgement pass is narrowed, and any change to the constitution, the integration map or a contract still forces a full pass."
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Optional per-command model overrides. null (the default for every key) means the command keeps the model in its own SKILL.md frontmatter. This exists because the kit's most expensive commands are also its most repeated ones: on a plan with a fixed allowance, the model choice for /rush-spec and /rush-analyze decides how many features fit in a week. An 'economy' setting that has held up in practice is spec and analyze on sonnet with architect left on opus — the architecture pass is where a wrong call is most expensive to undo, and it runs once per spec rather than once per feature. Accepts any model id the runtime knows.",
+      "properties": {
+        "pitch": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-pitch. null keeps the skill's own frontmatter."
+        },
+        "prd": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-prd. null keeps the skill's own frontmatter."
+        },
+        "architect": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-architect. null keeps the skill's own frontmatter."
+        },
+        "features": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-features. null keeps the skill's own frontmatter."
+        },
+        "spec": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-spec. null keeps the skill's own frontmatter."
+        },
+        "analyze": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-analyze. null keeps the skill's own frontmatter."
+        },
+        "implement": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-implement. null keeps the skill's own frontmatter."
+        },
+        "review": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null,
+          "description": "Model for /rush-review. null keeps the skill's own frontmatter."
+        }
+      }
     }
   }
 }

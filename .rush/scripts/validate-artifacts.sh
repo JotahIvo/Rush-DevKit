@@ -80,11 +80,19 @@ root, target = sys.argv[1], sys.argv[2]
 # The mechanism stays because a project may genuinely want a cap on a specific
 # file (a CLAUDE.md every agent reads on every run is the usual case) — set the
 # key in .rush/config.json -> budgets and this check enforces it again.
+# Defaults are None here on purpose even though config.default.json now ships
+# real numbers: a project whose config predates 0.8.0 has no value for these
+# keys, and inventing a ceiling for artifacts written before the ceiling
+# existed would fail a validation that passed yesterday, for files nobody
+# touched. New projects get the numbers from config.default.json; old ones opt
+# in by setting them.
 DEFAULT_BUDGETS = {
     "pitch": None,
     "prd": None,
     "spec": None,
     "plan": None,
+    "tasks": None,
+    "done_contract": None,
     "architecture": None,
     "architecture_summary": None,
     "claude_md": None,
@@ -101,6 +109,8 @@ BASENAME_TO_BUDGET_KEY = {
     "prd.md": "prd",
     "spec.md": "spec",
     "plan.md": "plan",
+    "tasks.md": "tasks",
+    "done-contract.md": "done_contract",
     "architecture.md": "architecture",
     "CLAUDE.md": "claude_md",
     "constitution.md": "constitution",
@@ -207,6 +217,10 @@ def find_placeholders(text):
 # passing rather than the check guessing from a filename they share.
 REQUIRED_SECTIONS = {
     "spec.md": ["behav", "interface", "data", "edge case", "out of scope", "assumption"],
+    # Same spec, written for a feature that has no prd.md of its own: it also
+    # owns the traceability back to the parent PRD's requirement ids.
+    "spec.md-no-prd": ["behav", "interface", "data", "edge case", "out of scope",
+                       "assumption", "traceab"],
     "plan.md": ["approach", "files", "order of work", "risk", "alternative"],
     "spec-prd": ["overview", "use cases", "goals", "out of scope",
                  "functional requirements", "quality attributes", "journeys",
@@ -453,6 +467,12 @@ bmap = budgets()
 
 def validate_feature(fid):
     fdir = "specs/%s" % fid
+    # A feature-level prd.md is optional since 0.8.0 (artifacts.feature_prd).
+    # When it is absent, the one thing it carried that nothing else did — the
+    # mapping from this feature's requirements back to the parent PRD's — must
+    # be inside spec.md instead, or it exists nowhere and the feature silently
+    # loses its link to the product definition.
+    has_feature_prd = read("%s/prd.md" % fdir) is not None
     for fname in ("prd.md", "spec.md", "plan.md", "tasks.md", "done-contract.md"):
         rel = "%s/%s" % (fdir, fname)
         text = read(rel)
@@ -468,6 +488,9 @@ def validate_feature(fid):
             check_sections(rel, text, violations)
         elif fname == "prd.md":
             check_sections(rel, text, violations, kind="feature-prd")
+        elif fname == "spec.md":
+            check_sections(rel, text, violations,
+                           kind="spec.md" if has_feature_prd else "spec.md-no-prd")
         else:
             check_sections(rel, text, violations)
 

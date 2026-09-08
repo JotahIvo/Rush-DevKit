@@ -96,7 +96,7 @@ preencher em todo spec é uma violação de placeholder esperando para ser repor
   "created": ["prd.md", "questions.md"], "already_existed": false }
 ```
 
-### `new-feature.sh <spec-id> <slug> [--title "..."] [--no-prd] [--no-activate] [--json]`
+### `new-feature.sh <spec-id> <slug> [--title "..."] [--prd|--no-prd] [--no-activate] [--json]`
 
 Cria `specs/<spec-id>/MMM-<slug>/` (MMM sequencial de 3 dígitos, **aninhado dentro do spec**;
 cada spec numera suas próprias features a partir de 001 — dois specs diferentes podem ter cada
@@ -273,6 +273,56 @@ Arquiva, sem apagar nada, seções resolvidas/fechadas de `.rush/memory/debt.md`
 movendo cada seção, byte a byte, para `debt.archive.md`/`architecture.archive.md` ao lado do
 arquivo ativo. `--restore <id>` reverte um item. `--dry-run` reporta sem escrever. Reaproveita
 `rushlib.py`'s `parse_headings`/`dump_text_file` — não reimplementa parsing de markdown.
+
+### `context-pack.sh [<feature-id>] [--spec <spec-id>] [--json]`
+
+Uma leitura no lugar de seis. Toda skill abria `config.json`, `constitution.md`,
+`integration-map.md`, `shared-contracts/`, a `architecture.md` da spec e os ADRs **em cheio, toda
+invocação**. Este script lê tudo isso uma vez e devolve só a fatia que se aplica àquela feature.
+
+Sem `<feature-id>`, usa a `current_feature` do `state.json`; sem nenhuma das duas, devolve só o
+contexto de nível de spec.
+
+Campos: `config` (as chaves em que um comando ramifica, não o arquivo), `constitution.binding_lines`
+(as linhas com MUST/NUNCA/DEVE — se `headings_only` for `true`, o arquivo precisa ser aberto),
+`integration_map` (a linha **desta** feature: `provides`, `consumes`, `consumed_from` com o provedor
+resolvido, `provided_to` — **quem quebra se o que ela provê mudar** —, e as `journeys` que a
+cruzam), `contracts` (caminhos, nunca corpo), `adrs` (id, título, status e a *decisão*),
+`architecture_sections` (títulos e tamanho, para abrir a seção certa em vez do arquivo),
+`open_questions`, `open_debt` (só o desta feature), `artifacts` (linhas contra o budget, com
+`over_budget`), `tasks` e `next_task`.
+
+A regra que acompanha o script, e que as skills carregam: **abrir em cheio apenas o que o pacote
+nomeou e contra o que se vai escrever.**
+
+### `questions.sh [<spec-id>] --open|--list|--add|--answer|--archive-answered [--json]`
+
+O `questions.md` é append-only de propósito — uma entrada nunca é apagada, porque a suposição
+registrada nela pode já ter sido embarcada num artefato. O efeito colateral é que ele só cresce, e
+as entradas respondidas são as mais longas e as menos relevantes ao trabalho em curso.
+
+`--open` devolve só as não respondidas; `--list`, todas (id, status, uma linha). `--add "<texto>"`
+exige `--assumption` (pergunta aberta sem suposição registrada é uma parada, não uma pergunta) e
+aceita `--by <agente>`; numera sozinho a partir do maior id existente. `--answer <id> "<texto>"`
+vira o status para `answered` e escreve a linha `**Answer**` no lugar certo do bloco — recusa
+reescrever uma já respondida. `--archive-answered [--older-than N]` (padrão:
+`memory.archive_after_days`) move as respondidas antigas para `questions.archive.md` deixando um
+índice de uma linha em `## Archived`. Nada é apagado; só deixa de ser lido.
+
+### `analysis-state.sh <feature-id> [--spec <id>] [--record GO|NO-GO] [--json]`
+
+O passe de julgamento do `/rush-analyze` é a leitura mais cara do fluxo. Rodá-lo de novo contra
+arquivos que ninguém tocou devolve o veredito anterior pelo preço anterior — que é o motivo de
+"roda o analyze de novo depois da correção" custar o mesmo que a primeira análise.
+
+`--record <verdito>` grava, em `.rush/state.json → analysis.<feature-id>`, o veredito e a impressão
+digital de tudo contra o que ele foi emitido. Sem `--record`, responde
+`full_pass_required` + `full_pass_reason`, e quando não é obrigatório, `changed` e `unchanged`.
+
+A decisão de estreitar é do script, não do agente: ele se invalida sozinho quando muda a
+`constitution.md`, o `specs/integration-map.md` ou qualquer contrato que a feature provê ou consome,
+e quando não há GO anterior gravado. Só um `GO` serve de linha de base; um `NO-GO` é gravado para a
+próxima rodada mostrar o que mexeu, mas nunca estreita nada.
 
 ### `session-start.sh [--json]`
 
