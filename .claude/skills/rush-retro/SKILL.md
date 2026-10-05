@@ -3,6 +3,7 @@ name: rush-retro
 description: Turn a closed feature's failures into permanent mechanisms — new eval cases, earned rules logged in lessons.md, retired dead checklist items, and ADRs — and audit open debt and questions for stale or mis-triaged entries. Invoke explicitly after a feature reaches done, or periodically as a project-wide sweep.
 argument-hint: "[feature-id] (omit for a periodic project-wide sweep)"
 model: sonnet
+effort: medium
 disable-model-invocation: true
 ---
 
@@ -55,7 +56,7 @@ Read before acting, in this order:
 7. **Every new rule must trace to a concrete failure.** No rule added because it sounds like good
    practice, matches a preference, or "couldn't hurt." If you cannot point to a specific commit,
    `tasks.md` Session Log entry, failed check, or review finding that this rule would have
-   prevented, do not add it — this is what keeps `CLAUDE.md` under 60 lines and stops checklist
+   prevented, do not add it — this is what keeps `CLAUDE.md` within `budgets.claude_md` and stops checklist
    theater.
 8. **Prefer a mechanism over a written rule.** If the failure could have been caught
     deterministically, the fix is a new eval case, a fitness function, or a hook — not a sentence
@@ -93,7 +94,7 @@ Read before acting, in this order:
      structural property checkable against the codebase (see the `# scope:` header convention).
    - **Earned rule in `CLAUDE.md`** (project-level, tactical, non-blocking) if no deterministic
      check is feasible.
-   - **Proposed constitution change** (Guardrail 12) only if the failure reflects a principle that
+   - **Proposed constitution change** (Guardrail 10) only if the failure reflects a principle that
      should block *every* future feature, not just a preference for this one.
    Log every addition in `.rush/memory/lessons.md`: the failure, the mechanism/rule added, and the
    date.

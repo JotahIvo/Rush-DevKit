@@ -3,6 +3,7 @@ name: rush-features
 description: Split a PRD into deliverable feature units and produce or update specs/integration-map.md, declaring what each feature provides and consumes so isolated, unconnected features become structurally impossible. Use after /rush-prd exists, before any feature gets its own spec.
 argument-hint: "<prd id or path>"
 model: opus
+effort: high
 disable-model-invocation: false
 ---
 
@@ -27,12 +28,12 @@ Read before acting, in this order:
    verdict, is what decides a boundary.
 2. `.rush/memory/architecture.md` — only the `## <spec-id>` section, via
    `rushlib.py parse-headings`, not the whole cross-spec digest.
-4. The PRD (`specs/<id>/prd.md`) — goals, requirements, and **user journeys**: the journeys are
+3. The PRD (`specs/<id>/prd.md`) — goals, requirements, and **user journeys**: the journeys are
    the primary input to this split, since a feature boundary that cuts a journey in half is a bad
    boundary.
-5. Existing `specs/integration-map.md`, if present — this command is re-runnable and additive;
+4. Existing `specs/integration-map.md`, if present — this command is re-runnable and additive;
    read it before writing so a new PRD's features are merged in, not overwriting prior ones.
-6. `.rush/templates/integration-map-template.md` — the structure to fill.
+5. `.rush/templates/integration-map-template.md` — the structure to fill.
 
 ## Guardrails
 
@@ -69,9 +70,13 @@ Read before acting, in this order:
 
 2. **Create each feature's directory, nested under this spec.** Features are never siblings of
    their spec — every one lives at `specs/<spec-id>/<feature-id>/`. For every candidate feature:
-   `.rush/scripts/new-feature.sh <spec-id> <slug> --title "<title>" --json`, where `<spec-id>` is
-   the spec whose PRD you just read (already created by `/rush-pitch` via `new-spec.sh`). It is
-   idempotent — an existing slug under that spec returns its directory without overwriting.
+   `.rush/scripts/new-feature.sh <spec-id> <slug> --title "<title>" --no-activate --json`, where
+   `<spec-id>` is the spec whose PRD you just read (already created by `/rush-prd`, or by
+   `/rush-pitch` before it). It is idempotent — an existing slug under that spec returns its
+   directory without overwriting. **`--no-activate` is not optional here**: you are creating
+   several features in one pass, and without it `.rush/state.json`'s `current_feature` is left
+   pointing at whichever one happened to be created last, which is never the answer to "which
+   feature am I working on". Step 11 sets the cursor deliberately, once, at the end.
    Collect each response's `dir` (`specs/<spec-id>/<feature-id>`) and build the node id used in the
    integration map as `<spec-id>/<feature-id>` — never a bare feature id, and never invented by
    hand: two different specs each number their own features starting at 001, so a bare id is
@@ -91,7 +96,7 @@ Read before acting, in this order:
    requirement most naturally belongs to, or the one architecture already assigned the bounded
    context to), record `owner: <feature-id>` in the map, and point every other consumer `from` the
    contract's shared path rather than from the owner feature directly. Do not let ownership be
-   implicit — an unowned shared interface is exactly the duplicate-provider risk guardrail 10 exists
+   implicit — an unowned shared interface is exactly the duplicate-provider risk guardrail 8 exists
    to prevent.
 
 5. **Map journeys.** For each user journey in the PRD, list the ordered sequence of features it
@@ -137,6 +142,12 @@ Read before acting, in this order:
 10. **Ask, at most once.** Present unresolved boundary decisions (max 3, by priority: scope >
     security/privacy > UX > technical detail) as a table with options and implications, and wait.
 
+11. **Point the cursor at the first feature to be worked on.** Run
+    `.rush/scripts/set-current.sh --spec <spec-id> --feature <first id in the validator's
+    topological `order`> --json`. That is where the work actually starts, and it is what
+    `session-start.sh` and `/rush-brief` will report until a skill that works on one feature moves
+    it forward.
+
 ## Output
 
 Write all user-facing output and generated artifacts in the language set in
@@ -166,4 +177,6 @@ Do not paste the map into the chat.
 - [ ] Every journey lists its crossed features and its proving test or human gate
 - [ ] Any feature that provides nothing and consumes nothing is explicitly flagged, not silently kept
 - [ ] The report states the topological `order` as the implementation sequence
+- [ ] Every feature was created with `--no-activate`, and `set-current.sh` was then pointed at the
+      first feature in that order — not left on whichever was created last
 - [ ] Open questions are either answered or recorded in `questions.md` with the assumption used

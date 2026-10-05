@@ -1,5 +1,70 @@
 # Changelog
 
+## 0.8.1
+
+O `.claude/` instalado era uma mistura de versões: tinha os guardrails condensados da 0.8.0, mas
+as mudanças de fluxo da 0.6.0 e a skill da 0.7.0 nunca tinham saído do staging — `rush-init` e
+`rush-new` estavam sem permissão de escrita, e o resto foi sobrescrito pela 0.8.0, que semeou o
+staging a partir do `.claude/` desatualizado.
+
+### Removed
+
+- **`models.*` no `config.json`.** Nenhum script, hook ou skill lia a chave — e nenhum poderia: uma
+  skill roda no modelo do próprio frontmatter, escolhido antes de qualquer instrução dela executar.
+  Uma alavanca de custo que não existe é pior que nenhuma. Saiu do schema e do `config.default.json`;
+  a migração `0.8.1` remove a seção dos configs que a receberam da 0.8.0, reportando com `attention`
+  quem tinha setado algum valor. Trocar o modelo de um comando é editar o `model:` do frontmatter.
+
+### Changed
+
+- **`/rush-analyze` virou rodada única.** Antes ele só reportava ("You never fix") e devolvia cada
+  blocker à skill dona do artefato — o que terminava sempre em "corrija e rode o analyze de novo".
+  Agora ele classifica cada achado em *Fix* (o estado certo já está determinado por um artefato
+  acima: constitution > PRD > arquitetura > integration map > spec > contratos > plan > tasks >
+  coverage), *Decide* (pergunta ao usuário, no máximo 3 por rodada, com opções e recomendação, e
+  espera) ou *Run* (algo que só o usuário pode executar). Corrige, pergunta, re-verifica — scripts
+  inteiros e julgamento sobre o que mudou — e só então dá o veredito. Continua proibido: decidir
+  sozinho conflito com a constitution, mudar comportamento ou interface consumida por outra feature,
+  e afrouxar critério, check, `verify:` ou journey test para chegar a GO. Se editou o
+  `done-contract.md` com `gates.spec: human`, pede aprovação na mesma rodada. Os três evals do
+  analyze foram reescritos para essa semântica.
+- **Modelos revistos para a geração atual, com `effort` no frontmatter.** `opus` (`effort: high`)
+  fica só onde a decisão roda uma vez e todo o resto herda o erro: init, new, architect, prd,
+  features, update. O que roda por feature — spec, spec-runner, analyze, implement, quick, review —
+  vai para `sonnet` com `effort: high`, com verificação determinística atrás. pitch, contracts e
+  retro em `sonnet`/`medium`, prototype em `sonnet`/`low`. `haiku` para triagem, doctor, brief,
+  context-save/load, pr, a orquestração do spec-all, e os três subagents de apoio: `rush-verifier`,
+  `rush-explorer` e `rush-researcher`.
+- **Escalonamento em vez de tier alto por padrão.** Explorer e researcher devolvem
+  `CONFIDENCE: high | low`; `rush-architect` e `rush-init` os despacham com `model: sonnet` nas
+  perguntas estruturais, e qualquer chamador repete em `sonnet` diante de `CONFIDENCE: low`.
+- **Bloco de guardrails padronizado.** As nove skills que ainda carregavam a versão longa de sete
+  itens passaram ao bloco condensado de cinco que as demais já usavam, com as variações próprias de
+  cada uma preservadas e as referências "Guardrail N" renumeradas na mesma edição.
+
+### Fixed
+
+- **Fluxo L com PRD primeiro, de fato.** `/rush` roteia L para `/rush-prd`; `rush-prd` cria o spec
+  e é a porta de entrada (FR-NNN, atributos de qualidade, journeys); `rush-architect` lê o PRD;
+  `rush-pitch` é opcional e semeia com `--pitch`; `rush-new` e `rush-quick` (escalação) seguem a
+  mesma ordem.
+- **Cursor de feature**: `rush-features` cria com `--no-activate` e aponta o cursor no fim;
+  `rush-spec` e `rush-implement` reivindicam a feature com `set-current.sh`.
+- **`rush-quick` passava a gerar artefato que reprovava na validação**: agora escreve as seções que
+  `validate-artifacts.sh` exige, com a Traceability citando o pedido, e os critérios de aceite no
+  `done-contract.md`.
+- **`rush-analyze`** volta a checar rastreabilidade (`FR-NNN` citado que não existe é blocker) e
+  procura critérios de aceite no `done-contract.md`.
+- **`/rush-update` instalado** em `.claude/skills/`. Removidos `.rush/_incoming/` e os
+  `apply-*-claude-edits.py` — que, sem exclusão no `kitfiles.py`, seriam enviados aos projetos.
+- Referências cruzadas "Guardrail N" quebradas pela renumeração da 0.8.0, em oito arquivos.
+- Tetos de linha fixos nos prompts trocados pelas chaves de `config.json → budgets`.
+- `git.branch_pattern`: o schema aceitava só string e dizia que não era aplicado; agora aceita
+  string, lista ou `null`, e o default do schema e do `config.default.json` é a lista que a
+  migração 0.5.0 já gravava.
+- Docs (README, agents, flow, getting-started, configuration, kit-conventions): contagem de skills,
+  tabela de modelos, `prd.md` por feature desligado, budgets ligados, bloco de guardrails condensado.
+
 ## 0.8.0
 
 O kit gastava mais contexto lendo do que escrevendo, e ninguém tinha medido isso.

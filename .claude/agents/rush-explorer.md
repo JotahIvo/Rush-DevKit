@@ -2,7 +2,7 @@
 name: rush-explorer
 description: Read-only codebase explorer that answers a specific question about how part of the system works and returns a dense map with file paths and conventions, without flooding the caller's context. Use proactively whenever an agent needs to understand existing code.
 tools: Read, Glob, Grep, Bash
-model: sonnet
+model: haiku
 color: cyan
 ---
 
@@ -45,7 +45,14 @@ CONVENTIONS OBSERVED:
 
 INCONSISTENCIES / GAPS:
   - <what is irregular, missing, or could not be determined, and where you looked>
+
+CONFIDENCE: high | low — <one line: why, when low>
 ```
+
+`CONFIDENCE: low` is how the caller knows to re-ask on a stronger model instead of building on a
+shaky map. Use it whenever the answer rests on inference across many modules rather than on code
+you read, or when the search space was larger than you could cover — never to hedge an answer you
+actually verified.
 
 Keep the whole response under roughly 60 lines. If the honest answer needs more, the question was
 too broad — say so and propose narrower questions instead of dumping everything.

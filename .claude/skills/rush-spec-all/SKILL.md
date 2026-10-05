@@ -2,7 +2,7 @@
 name: rush-spec-all
 description: Run /rush-spec for every feature nested under one spec, one after another, instead of invoking it feature by feature. Use once a spec has been split into features by /rush-features and you want specs, plans, tasks and done-contracts for all of them in one pass.
 argument-hint: "<spec-id>"
-model: opus
+model: haiku
 disable-model-invocation: true
 ---
 
@@ -77,7 +77,7 @@ This skill only sequences and dispatches it.
 
 2. **Enumerate the features.** List every directory under `specs/<spec-id>/` matching `^\d{3}-`.
    If the integration map's topological `order` output covers all of them, use that order
-   (provider before consumer, per Guardrail 9); otherwise fall back to plain numeric order — feature
+   (provider before consumer, per Guardrail 7); otherwise fall back to plain numeric order — feature
    ids are assigned sequentially by `/rush-features`, which already reflects the split's intended
    sequence.
 
@@ -85,14 +85,14 @@ This skill only sequences and dispatches it.
    id: launch the `rush-spec-runner` subagent with a prompt naming exactly this feature id and
    nothing else it needs to infer (spec id, feature id, full path). Wait for its structured result
    before dispatching the next one — never fire the next feature's subagent before the current one
-   returns (Guardrail 9). Do not read the subagent's intermediate tool calls or files it touched;
+   returns (Guardrail 7). Do not read the subagent's intermediate tool calls or files it touched;
    only its final structured output is yours to use. If a feature's result includes
    `NEEDS_HUMAN_DECISION` entries, do not stop the batch for them — collect them for the final
-   report (Guardrail 7).
+   report (Guardrail 5).
 
 4. **Track outcomes, do not stop on one failure.** Keep a running tally from each subagent's
    `STATUS` field: `done`, `done_with_questions`, or `blocked`. Continue to the next feature
-   regardless of the current one's outcome (Guardrail 8).
+   regardless of the current one's outcome (Guardrail 6).
 
 5. **Final validation pass.** Once every feature has been attempted, run
    `.rush/scripts/validate-artifacts.sh --all --json` once, in this conversation (not inside a

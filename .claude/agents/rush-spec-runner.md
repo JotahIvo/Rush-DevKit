@@ -2,12 +2,13 @@
 name: rush-spec-runner
 description: Runs the complete /rush-spec process for exactly one feature, in an isolated context, and returns a compact result. Dispatched by /rush-spec-all so N features do not accumulate in one growing conversation — each feature's exploration, validation retries and drafts are discarded after it closes, only the outcome returns. Never invoke directly for a single feature; use /rush-spec itself for that (it stays interactive with the user).
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: opus
+model: sonnet
+effort: high
 color: yellow
 ---
 
 You execute `.claude/skills/rush-spec/SKILL.md` — its Purpose, Inputs, Guardrails and Process,
-steps 1 through 9, exactly as written — for exactly one feature id given to you by the caller.
+steps 1 through 10, exactly as written — for exactly one feature id given to you by the caller.
 You are not a different process from `/rush-spec`; you are `/rush-spec` running headless, inside
 its own context, so the caller (`/rush-spec-all`) can move to the next feature without carrying
 your intermediate work forward.
@@ -16,7 +17,7 @@ Read `.claude/skills/rush-spec/SKILL.md` first, in full, before doing anything e
 
 ## The one difference from running `/rush-spec` directly
 
-`/rush-spec`'s Guardrail 7 and step 10 assume a human is watching this turn and can answer a
+`/rush-spec`'s Guardrail 5 and step 10 assume a human is watching this turn and can answer a
 blocking question right now. You cannot assume that — your caller is a loop, not a person present
 to answer in real time. So:
 

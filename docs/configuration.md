@@ -161,23 +161,6 @@ fluxo spec-driven não é o que o agente escreve, é o que todo comando relê pr
 | `context.questions_open_only` | `true` | Lê só as perguntas ainda abertas (`questions.sh --open`). O `questions.md` é append-only por design e cresce sem limite; as respondidas são as mais longas e as menos relevantes ao trabalho em curso. |
 | `context.skip_analysis_when_unchanged` | `true` | Deixa o `/rush-analyze` julgar só o que mudou desde o último GO, guiado pelo `analysis-state.sh`. Os scripts determinísticos rodam inteiros de qualquer forma; só o passe de julgamento é estreitado, e mudança na constitution, no integration-map ou num contrato força o passe completo. |
 
-## `models`
-
-Override de modelo por comando. Toda chave nasce `null`, o que significa "mantém o modelo do
-frontmatter da própria skill".
-
-Existe porque os comandos mais caros do kit são também os mais repetidos: num plano com cota fixa,
-o modelo escolhido para `/rush-spec` e `/rush-analyze` decide quantas features cabem numa semana.
-Um ajuste de economia que se sustenta na prática é **`spec` e `analyze` em sonnet, `architect` em
-opus** — a passagem de arquitetura é onde uma decisão errada é mais cara de desfazer, e ela roda
-uma vez por spec, não uma vez por feature.
-
-```json
-"models": { "spec": "sonnet", "analyze": "sonnet", "architect": null }
-```
-
-Chaves: `pitch`, `prd`, `architect`, `features`, `spec`, `analyze`, `implement`, `review`.
-
 ## `verification`
 
 | Chave | Valores | Padrão | Consequência |
@@ -226,11 +209,13 @@ model: opus
 
 Tabela recomendada de modelos por agente (de `docs/internals/kit-conventions.md`):
 
-| Modelo | Agentes |
-|---|---|
-| `opus` | `rush-init`, `rush-new`, `rush-architect`, `rush-pitch`, `rush-prd`, `rush-features`, `rush-spec`, `rush-analyze`, `rush-review` |
-| `sonnet` | `rush-quick`, `rush-implement`, `rush-contracts`, `rush-prototype`, `rush-retro`, `rush-explorer`, `rush-researcher` |
-| `haiku` | `rush` (triagem), `rush-doctor`, `rush-brief`, `rush-verifier` |
+| Modelo | `effort` | Agentes |
+|---|---|---|
+| `opus` | `high` | `rush-init`, `rush-new`, `rush-architect`, `rush-prd`, `rush-features`, `rush-update` |
+| `sonnet` | `high` | `rush-spec`, `rush-spec-runner`, `rush-analyze`, `rush-implement`, `rush-quick`, `rush-review` |
+| `sonnet` | `medium` | `rush-pitch`, `rush-contracts`, `rush-retro` |
+| `sonnet` | `low` | `rush-prototype` |
+| `haiku` | — | `rush` (triagem), `rush-doctor`, `rush-brief`, `rush-context-save`, `rush-context-load`, `rush-pr`, `rush-spec-all`, `rush-verifier`, `rush-explorer`, `rush-researcher` |
 
 Quem tem acesso a um tier ainda mais alto pode trocar `model: opus` por `model: fable` em
 `rush-init` e `rush-architect` — são os dois pontos de maior alavancagem do kit (fundação e

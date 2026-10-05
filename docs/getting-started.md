@@ -82,11 +82,11 @@ Em um repositório vazio ou quase vazio:
 /rush-new "<ideia do produto em uma linha>"
 ```
 
-`rush-new` não é uma skill separada de infraestrutura: ele orquestra `/rush-pitch`,
-`/rush-architect`, `/rush-prd` e `/rush-features` de verdade, na sequência — descoberta e corte de
-MVP, escolha de stack com trade-offs reais (2–3 alternativas, aprovação explícita), scaffold com o
-gerador oficial do ecossistema escolhido (`nest new`, `create-next-app`, etc.), harness mínimo, PRD
-do MVP e a fila completa de specs prontas, validadas por `/rush-analyze`. Há dois pontos de
+`rush-new` não é uma skill separada de infraestrutura: ele orquestra `/rush-prd`,
+`/rush-architect` e `/rush-features` de verdade, na sequência — descoberta, PRD do MVP com o corte
+explícito, escolha de stack com trade-offs reais (2–3 alternativas, aprovação explícita), scaffold com o
+gerador oficial do ecossistema escolhido (`nest new`, `create-next-app`, etc.), harness mínimo e a fila
+completa de specs prontas, validadas por `/rush-analyze`. Há dois pontos de
 aprovação humana obrigatórios: a escolha de stack e a fila de specs terminada — nada é
 escrito/escafoldado sem isso. Ao final, o próximo passo é `/rush-implement` na primeira feature da
 ordem topológica.
@@ -139,7 +139,7 @@ escreve spec ou código.
 
 `rush-quick` primeiro reconfirma o nível com o mesmo `triage.sh`. Se, a qualquer momento durante a
 exploração, aparecer um sinal de escalonamento (mudança de contrato existente, migration,
-dependência nova, path sensível), a skill **para** e redireciona para `/rush-pitch` — isso não
+dependência nova, path sensível), a skill **para** e redireciona para `/rush-prd` — isso não
 aconteceu aqui.
 
 Ela cria o diretório da feature:
@@ -233,7 +233,7 @@ aconteceu no caminho em um mecanismo permanente — veja [`evals.md`](./evals.md
 
 ## Próximos passos
 
-- Entenda os 18 skills e 4 subagents em [`agents.md`](./agents.md).
+- Entenda as 22 skills e 4 subagents em [`agents.md`](./agents.md).
 - Entenda a triagem S/M/L e o fluxo completo L em [`flow.md`](./flow.md).
 - Entenda hooks, config e os limites de segurança em [`harness.md`](./harness.md).
 - Entenda o que "pronto" significa em cada nível em [`definition-of-done.md`](./definition-of-done.md).

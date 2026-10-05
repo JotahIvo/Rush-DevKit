@@ -1,7 +1,7 @@
 """0.8.0 — context economy: new config sections, and budgets back on for new projects.
 
 0.8.0's subject is not what the kit writes, it is what every command re-reads before it starts.
-Three keys arrive:
+Two sections arrive:
 
 - `artifacts.feature_prd` ("off"): the feature-level prd.md stops being generated. It restated the
   parent PRD and the feature's own spec.md, and analyze, implement, review and retro each paid to
@@ -11,8 +11,10 @@ Three keys arrive:
   new ones from being written.
 - `context.*`: whether commands read `context-pack.sh` instead of six files, whether they read only
   open questions, and whether `/rush-analyze` may judge only what changed since its last GO.
-- `models.*`: per-command model overrides, all null, for plans where the model chosen for the two
-  most-repeated commands decides how many features fit in a week.
+
+(0.8.0 also added `models.*`, per-command model overrides. Nothing ever read them — a skill's model
+lives in its own frontmatter — so 0.8.1 dropped the section and this migration no longer adds it;
+0.8.1's migration removes it from configs that already got it.)
 
 Budgets are the one judgement call. 0.6.0 released them all to null on purpose, and that was right
 for the reason it gave: a document cut short to hit a number moves the missing decisions into
@@ -24,7 +26,7 @@ already on disk were written without a ceiling, and failing a validation that pa
 files nobody touched, is not a migration. It reports the numbers and leaves the choice.
 """
 VERSION = "0.8.0"
-DESCRIPTION = "Context-economy config: artifacts.feature_prd, context.*, models.*; budgets reported, not imposed."
+DESCRIPTION = "Context-economy config: artifacts.feature_prd, context.*; budgets reported, not imposed."
 
 NEW_SECTIONS = {
     "artifacts": {"feature_prd": "off"},
@@ -32,10 +34,6 @@ NEW_SECTIONS = {
         "pack_first": True,
         "questions_open_only": True,
         "skip_analysis_when_unchanged": True,
-    },
-    "models": {
-        "pitch": None, "prd": None, "architect": None, "features": None,
-        "spec": None, "analyze": None, "implement": None, "review": None,
     },
 }
 

@@ -80,16 +80,31 @@
           "default": "conventional"
         },
         "branch_pattern": {
-          "type": "string",
-          "description": "Naming pattern new branches should follow, e.g. 'feat/NNN-slug' where NNN is the zero-padded feature id from specs/NNN-<slug>/ and slug is the feature's kebab-case name. Advisory: agents follow it when they create a branch. It is NOT enforced by a hook — git does not route branch creation through a tool call the hooks can reliably intercept.",
-          "default": "feat/NNN-slug"
+          "type": [
+            "string",
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "description": "Branch name shape(s) allowed, enforced by guard-bash.sh: creating a branch that matches no pattern is denied, and so is a git commit made on a branch that matches none. A pattern is a shape, not a regex: literal except NNN (three-digit id), slug (kebab-case), * (one segment) and ** (anything). Accepts one string or a list; null or an empty list turns the check off. The default includes main/master so commits on the default branch keep working — remove them to force every change onto a feature branch. Branches a human creates in their own terminal never pass through a hook and are not intercepted.",
+          "default": [
+            "feat/NNN-slug",
+            "main",
+            "master"
+          ]
         }
       },
       "default": {
         "allow_commit": true,
         "allow_push": false,
         "commit_convention": "conventional",
-        "branch_pattern": "feat/NNN-slug"
+        "branch_pattern": [
+          "feat/NNN-slug",
+          "main",
+          "master"
+        ]
       }
     },
     "code": {
@@ -526,77 +541,6 @@
           "type": "boolean",
           "default": true,
           "description": "Let /rush-analyze compare artifact fingerprints against the last GO it recorded and judge only what changed since. A full re-judgement of an untouched artifact returns the same verdict it returned last time, at full cost. The deterministic scripts run in full every time regardless — only the judgement pass is narrowed, and any change to the constitution, the integration map or a contract still forces a full pass."
-        }
-      }
-    },
-    "models": {
-      "type": "object",
-      "additionalProperties": false,
-      "description": "Optional per-command model overrides. null (the default for every key) means the command keeps the model in its own SKILL.md frontmatter. This exists because the kit's most expensive commands are also its most repeated ones: on a plan with a fixed allowance, the model choice for /rush-spec and /rush-analyze decides how many features fit in a week. An 'economy' setting that has held up in practice is spec and analyze on sonnet with architect left on opus — the architecture pass is where a wrong call is most expensive to undo, and it runs once per spec rather than once per feature. Accepts any model id the runtime knows.",
-      "properties": {
-        "pitch": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-pitch. null keeps the skill's own frontmatter."
-        },
-        "prd": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-prd. null keeps the skill's own frontmatter."
-        },
-        "architect": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-architect. null keeps the skill's own frontmatter."
-        },
-        "features": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-features. null keeps the skill's own frontmatter."
-        },
-        "spec": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-spec. null keeps the skill's own frontmatter."
-        },
-        "analyze": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-analyze. null keeps the skill's own frontmatter."
-        },
-        "implement": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-implement. null keeps the skill's own frontmatter."
-        },
-        "review": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "default": null,
-          "description": "Model for /rush-review. null keeps the skill's own frontmatter."
         }
       }
     }

@@ -1,29 +1,40 @@
 ---
 name: rush-pitch
-description: Turn a raw idea into specs/<id>/pitch.md — problem, audience, appetite, solution shape, risks and explicit out-of-scope — through a short probing conversation. Use when a new idea needs to be shaped into product intent before any architecture or spec work starts.
+description: Optional pre-step for an idea that is still one sentence — turn it into specs/<spec-id>/pitch.md (problem, audience, appetite, solution shape, risks, explicit out-of-scope) through a short probing conversation, so /rush-prd has something shaped to work from. Skip it whenever the problem is already clear enough to write a PRD.
 argument-hint: "<idea or feature id>"
-model: opus
+model: sonnet
+effort: medium
 disable-model-invocation: false
 ---
 
 ## Purpose
 
-Turn a raw idea into `specs/<id>/pitch.md`: the problem worth solving, who has it, how much this
-deserves (appetite), the solution in broad strokes, the risks, and what is deliberately not being
-built. This is the first artifact in the flow — nothing downstream exists yet.
+Turn a raw idea into `specs/<spec-id>/pitch.md`: the problem worth solving, who has it, how much
+this deserves (appetite), the solution in broad strokes, the risks, and what is deliberately not
+being built.
+
+**This command is optional, and most work should skip it.** `/rush-prd` is the flow's entry point
+and does its own problem-framing conversation. The pitch exists for the case where that would be
+premature: the idea is genuinely one sentence long, the problem underneath it has not been named
+yet, and writing requirements now would just formalise a guess. Shaping that into a page — cheap,
+throwaway, argued over — before anyone writes a requirement is what this is for. When the problem
+is already clear, running this first adds a document and no information: go straight to
+`/rush-prd`.
 
 Not yours: naming technology, endpoints, screens, or data models (that is `/rush-architect` and
-`/rush-spec`), and estimating implementation effort in hours or story points.
+`/rush-spec`), estimating implementation effort in hours or story points, and writing requirements
+— a pitch that starts numbering requirements has become a PRD, badly.
 
 ## Inputs
 
 Read before acting, in this order:
 
-1. `.rush/config.json` — language, autonomy, gates.
-2. `.rush/memory/constitution.md` — binding principles the pitch must not contradict.
-3. `.rush/memory/decisions.md` (if present) — prior context that avoids re-asking what is already
-   known. If this spec already exists (a re-run), also read its own `questions.md`.
-4. Any existing `specs/<id>/pitch.md` — this command is re-runnable; read before overwriting.
+1. `.rush/scripts/context-pack.sh --json` (`--spec <spec-id>` on a re-run) — language, autonomy,
+   gates, the `pitch` budget and the constitution's binding lines the pitch must not contradict.
+2. `.rush/memory/product.md` — prior product context that avoids re-asking what is already known.
+   If this spec already exists (a re-run), also its open questions:
+   `.rush/scripts/questions.sh <spec-id> --open --json`.
+3. Any existing `specs/<spec-id>/pitch.md` — this command is re-runnable; read before overwriting.
 
 ## Guardrails
 
@@ -73,7 +84,8 @@ Read before acting, in this order:
 6. **Resolve the spec id.** A pitch always creates (or resumes) a **spec** — the numbered parent
    directory that will hold `pitch.md`, `prd.md`, and eventually one or more features nested inside
    it. If `<id>` doesn't already exist under `specs/`, run
-   `.rush/scripts/new-spec.sh <slug> --title "<title>" --json` right now, before writing anything —
+   `.rush/scripts/new-spec.sh <slug> --title "<title>" --pitch --json` right now, before writing
+   anything — `--pitch` is what seeds `pitch.md`, and only this command passes it —
    do not defer numbering to a later command. It is idempotent, so re-running this pitch for an
    existing spec is safe: pass the existing slug and it returns the same directory. Collect the
    response's `spec_id` and `dir` (`specs/<spec-id>`); that is where `pitch.md` is written. A pitch
@@ -89,11 +101,11 @@ Read before acting, in this order:
      flagged, adoption risk.
    - **Out of scope**: named explicitly. What this pitch is deliberately not solving, so later
      agents don't quietly re-add it.
-   Budget: 60 lines. If you can't say it in 60 lines, the idea is not pitched yet — it's two ideas.
+   Budget: `config.json → budgets.pitch`. A pitch that needs more is either two ideas, or a PRD
+   trying to be born early — in which case stop here and run `/rush-prd`, which is built for it.
 
-8. **Validate.** Run `.rush/scripts/validate-artifacts.sh <id> --json` if the feature dir already
-   exists (post `/rush-features`); otherwise check the budget yourself against the same limit.
-   Fix every `severity: error` and re-run, up to 3 iterations.
+8. **Validate.** Run `.rush/scripts/validate-artifacts.sh --all --json`. Fix every
+   `severity: error` and re-run, up to 3 iterations.
 
 ## Output
 
@@ -107,13 +119,13 @@ Write all user-facing output and generated artifacts in the language set in
 - appetite band
 - what's explicitly out of scope (one line)
 - open questions, if any
-- suggested next command (`/rush-architect <spec-id>` or `/rush-prd <spec-id>`)
+- the next command, which is always `/rush-prd <spec-id>` — the pitch is never the last word
 
 Do not paste the artifact into the chat.
 
 ## Done When
 
-- [ ] `pitch.md` exists, within the 60-line budget
+- [ ] `pitch.md` exists, within `budgets.pitch`
 - [ ] Problem is stated independently of any solution
 - [ ] Appetite is an explicit time/effort band, not a task estimate
 - [ ] Out of scope is named explicitly, not implied

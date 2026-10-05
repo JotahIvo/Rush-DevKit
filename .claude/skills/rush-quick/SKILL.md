@@ -3,13 +3,14 @@ name: rush-quick
 description: Deliver an M-scope change end-to-end with one lean condensed spec, a task list and a minimal done-contract, then hand off to implementation — for changes with clear scope that don't warrant a pitch, PRD or architecture pass.
 argument-hint: "<what you want to change>"
 model: sonnet
+effort: high
 disable-model-invocation: false
 ---
 
 ## Purpose
 
-The fast path for medium-scope work: produce one condensed `specs/NNN-<slug>/spec.md` (behaviour,
-acceptance criteria, out of scope), a `tasks.md`, and a minimal `done-contract.md`, then hand off to
+The fast path for medium-scope work: produce one condensed
+`specs/<spec-id>/<feature-id>/spec.md` (behaviour, out of scope), a `tasks.md`, and a minimal `done-contract.md`, then hand off to
 `/rush-implement`. This is a first-class path, not a shortcut taken under protest — most changes a
 team makes in a mature project are M, and forcing them through pitch/PRD/architecture would be the
 wrong kind of process weight.
@@ -57,7 +58,7 @@ same six files `/rush-spec` used to is just `/rush-spec` with fewer artifacts at
    single most important guardrail in this skill: silently continuing past one of these signals is
    the exact failure mode this path exists to prevent, because M artifacts have no architecture
    review and no PRD to catch what a bigger change needed. Report the finding and redirect to the L
-   flow (`/rush-pitch`), keeping whatever feature directory already exists — it is not wasted work.
+   flow (`/rush-prd`), keeping whatever spec directory already exists — it is not wasted work.
 8. **Never produce `pitch.md`, `prd.md`, or `architecture.md` content.** If you find yourself
     writing rationale, alternatives-considered-and-rejected at a product level, or multi-feature
     trade-offs, that content belongs in the L flow, not folded into `spec.md`.
@@ -73,15 +74,17 @@ same six files `/rush-spec` used to is just `/rush-spec` with fewer artifacts at
 1. **Sanity-check the level before writing anything.** Run
    `.rush/scripts/triage.sh --paths "<paths>" --files <count> --json`. If `forced: true` or
    `level: "L"`, stop here — do not create a feature directory for it under this skill — and tell
-   the user to use `/rush-pitch` instead, naming the forcing signal.
+   the user to use `/rush-prd` instead, naming the forcing signal.
 
 2. **Resolve the feature.** Every feature nests under a spec (`specs/<spec-id>/<feature-id>/`), even
-   an M-scope one — this path skips writing `pitch.md`/`prd.md`/`architecture.md` content, not the
-   numbering. If it doesn't exist yet: run `.rush/scripts/new-spec.sh <slug> --title "<title>" --json`
-   (this only scaffolds `pitch.md`/`prd.md` templates — leave them untouched, per Guardrail 10) to get
-   `spec_id`, then `.rush/scripts/new-feature.sh <spec_id> <slug> --json` using the same slug to
-   create the single feature inside it. Both calls are idempotent. If it already exists, locate it
-   (a bare id/prefix resolves across specs; the error names any collision).
+   an M-scope one — this path skips the product layer, not the numbering. If it doesn't exist yet:
+   run `.rush/scripts/new-spec.sh <slug> --title "<title>" --minimal --json` to get `spec_id`, then
+   `.rush/scripts/new-feature.sh <spec_id> <slug> --no-prd --json` using the same slug to create
+   the single feature inside it. Both flags matter: `--minimal` and `--no-prd` are what stop this
+   path from leaving unfilled `prd.md` templates behind (Guardrail 8), which nobody on the M path
+   would ever come back to fill and which `validate-artifacts.sh` would then report forever. Both
+   calls are idempotent. If it already exists, locate it (a bare id/prefix resolves across specs;
+   the error names any collision).
 
 3. **Understand the touched code narrowly.** Where the change lands on existing code, dispatch
    `rush-explorer` with one specific question (e.g. "where is the rate limiter configured and what
@@ -90,18 +93,23 @@ same six files `/rush-spec` used to is just `/rush-spec` with fewer artifacts at
 
 4. **Watch for escalation signals continuously**, not just at step 1: while exploring or scoping,
    if you hit an existing contract that needs to change, a migration, a new dependency, or a
-   sensitive path, stop per Guardrail 9 right there and skip to step 9.
+   sensitive path, stop per Guardrail 7 right there and skip to step 9.
 
-5. **Write the condensed `spec.md`** (still validated against the standard `spec.md` budget of 150
-   lines via `validate-artifacts.sh`, but deliberately thinner in content than the full spec):
+5. **Write the condensed `spec.md`** from `.rush/templates/spec-template.md` — the same required
+   sections `validate-artifacts.sh` checks on a full spec, within `budgets.spec`, deliberately
+   thinner in content because an M-scope change genuinely has less to say:
    - **Behaviour**: what the system does, observable from outside, testable without reading code.
-   - **Interfaces** (only if the change touches one): what's exposed or consumed, referencing
-     `shared-contracts/` by path — never inline a copy.
-   - **Acceptance criteria**: numbered, each written as the test you'd run to confirm it.
+   - **Interfaces**: what's exposed or consumed, referencing `shared-contracts/` by path — never
+     inline a copy. "None — no interface touched" when that is the case.
+   - **Data** and **Edge cases**: one line each when there is little to say ("no entity touched";
+     "invalid input keeps the current behaviour of X"), never omitted — an absent section reads as
+     "not considered".
+   - **Traceability**: there is no parent PRD on this path, so the source is the request itself —
+     quote it in one line. That is what the next reader traces the behaviour back to.
    - **Out of scope**: the explicit anti-scope-creep line.
    - **Assumptions**: every informed default chosen instead of asking.
-   Deliberately omit the heavier sections (`Data` lifecycle detail, extended edge-case catalogue)
-   unless the change specifically needs one of them to be understood — condensed means condensed.
+   Acceptance criteria do **not** go here: they live in `done-contract.md` (step 8), next to the
+   check that enforces each one.
 
 6. **If an interface is touched**, update the `provides`/`consumes` block in
    `specs/integration-map.md` and run `.rush/scripts/validate-integration-map.sh --json`. Fix
@@ -110,14 +118,16 @@ same six files `/rush-spec` used to is just `/rush-spec` with fewer artifacts at
 7. **Write `tasks.md`**: small, independently verifiable units in dependency order, each with its
    own `verify:` command. All tasks start `pending`.
 
-8. **Write a minimal `done-contract.md`** with a fenced ```json block: at least one acceptance-test
-   check, plus `validate-contracts.sh`/`validate-integration-map.sh` checks if an interface was
-   touched. Add a human gate only where a check genuinely can't cover the criterion — minimal does
-   not mean unenforced.
+8. **Write a minimal `done-contract.md`** from `.rush/templates/done-contract-template.md`: the
+   numbered **Acceptance Criteria** (each written as the test you'd run to confirm it), the fenced
+   ```json block with at least one acceptance-test check — plus `validate-contracts.sh` /
+   `validate-integration-map.sh` checks if an interface was touched — and the **Acceptance Criteria
+   Coverage** table mapping every criterion to a check or a human gate. Add a human gate only where
+   a check genuinely can't cover the criterion — minimal does not mean unenforced.
 
 9. **If you escalated at any point**, stop the artifact work where it stands, do not write
    `done-contract.md` if you haven't reached it, and report: what you found, which guardrail it
-   tripped, and that the next step is `/rush-pitch` for this same feature slug. Skip the remaining
+   tripped, and that the next step is `/rush-prd` for this same spec. Skip the remaining
    steps.
 
 10. **Validate.** Run `.rush/scripts/validate-artifacts.sh <feature-id> --json`. Fix every
@@ -125,9 +135,9 @@ same six files `/rush-spec` used to is just `/rush-spec` with fewer artifacts at
 
 ## Output
 
-Files under `specs/<feature-id>/`. Report to the user in ≤ 8 lines: feature id and path, number of
+Files under `specs/<spec-id>/<feature-id>/`. Report to the user in ≤ 8 lines: feature id and path, number of
 acceptance criteria, whether an interface was registered in the integration map, any escalation that
-occurred (and why), and the next command — `/rush-implement <feature-id>` on success, `/rush-pitch`
+occurred (and why), and the next command — `/rush-implement <feature-id>` on success, `/rush-prd`
 on escalation. Do not paste the artifacts into the chat.
 
 ## Done When

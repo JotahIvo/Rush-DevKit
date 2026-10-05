@@ -89,7 +89,7 @@ de uma chave mudou, e deixa para o `/rush-update` só o que exige julgamento. De
                          └── L ──► (/rush-pitch) ──► /rush-prd ──► /rush-architect
                                        opcional           │
                                                           │
-                                   /rush-features ──► /rush-spec (gera prd + contratos)
+                                   /rush-features ──► /rush-spec (gera contratos)    
                                         │              [ou /rush-spec-all p/ todas as features]
                                         │                                  │
                                         │                        /rush-prototype (opcional)
@@ -109,8 +109,8 @@ qualidade com alvo, journeys, métricas — a porta de entrada do fluxo L) ·
 `rush-architect` (13 disciplinas a partir do PRD, candidatos com trade-offs, ADR e
 **fitness functions**) · `rush-pitch` (*opcional*: para quando a ideia ainda é uma frase)
 
-**Especificação** — `rush-features` (integration map) · `rush-spec` (PRD da feature + spec + plan +
-tasks + done-contract + contratos, numa passada) · `rush-spec-all` (roda `rush-spec` para todas as features de um spec) · `rush-contracts`
+**Especificação** — `rush-features` (integration map) · `rush-spec` (spec + plan + tasks +
+done-contract + contratos, numa passada) · `rush-spec-all` (roda `rush-spec` para todas as features de um spec) · `rush-contracts`
 (re-sincroniza um contrato depois de congelado) · `rush-prototype`
 
 **Implementação** — `rush-analyze` (gate go/no-go) · `rush-implement` (uma task por vez, com
@@ -158,12 +158,15 @@ O modelo é definido no frontmatter de cada skill — fonte única, sem duplicar
 
 | Modelo | Agentes | Racional |
 |---|---|---|
-| `opus` | init, new, architect, pitch, prd, features, spec, spec-all, analyze, review | Julgamento com alta alavancagem e saída pequena |
-| `sonnet` | implement, quick, contracts, prototype, retro, pr, explorer, researcher | Volume de trabalho com verificação determinística atrás |
-| `haiku` | rush (triagem), doctor, brief, context-save, context-load, verifier | Executam scripts e compactam resultados |
+| `opus` (`effort: high`) | init, new, architect, prd, features, update | Decisão que roda uma vez e que todo o resto herda |
+| `sonnet` (`effort: high`) | spec, spec-runner, analyze, implement, quick, review | O que roda por feature e vira execução — com verificação determinística atrás |
+| `sonnet` (`medium`/`low`) | pitch, contracts, retro, prototype | Saída derivada de um artefato que já existe |
+| `haiku` | rush (triagem), doctor, brief, context-save, context-load, pr, spec-all, verifier, explorer, researcher | Executam script, resumem, recuperam ou orquestram |
 
-Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` e `rush-architect`
-— são os dois pontos de maior alavancagem do kit.
+Explorer e researcher sobem para `sonnet` só quando a pergunta pede (decisão estrutural ou
+`CONFIDENCE: low`). O `model` de uma skill vale só no turno que a invoca — numa skill interativa, o
+resto roda no modelo da sessão, então rode a sessão em `sonnet`. Detalhes em
+[`kit-conventions.md`](docs/internals/kit-conventions.md#modelos-e-esforço-por-agente).
 
 ## Documentação
 
@@ -171,7 +174,7 @@ Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` 
 |---|---|
 | [Getting started](docs/getting-started.md) | Instalação e um passo a passo completo de uma feature |
 | [Fluxo](docs/flow.md) | Triagem S/M/L, gates e a fronteira O QUE / COMO |
-| [Agentes](docs/agents.md) | Referência das 21 skills e 4 subagents |
+| [Agentes](docs/agents.md) | Referência das 22 skills e 4 subagents |
 | [Harness](docs/harness.md) | Config, hooks, loop do agente, memória |
 | [Definition of Done](docs/definition-of-done.md) | A cadeia de "pronto" em 4 níveis |
 | [Integração](docs/integration.md) | Integration map, shared contracts, journey tests |
@@ -190,11 +193,11 @@ Quem tem acesso ao tier mais alto pode trocar `opus` por `fable` em `rush-init` 
 4. **Ninguém se autoavalia.** Geração e avaliação são atores separados.
 5. **Ratchet.** Toda falha vira mecanismo permanente: um hook, um eval, uma regra registrada em
    `lessons.md` com a falha que a originou. Nenhuma regra nasce de opinião.
-6. **Densidade, não brevidade.** Nenhum documento gerado tem teto de linhas: ele tem o tamanho que
-   o conteúdo exige. O que o kit não aceita é enchimento — o mesmo requisito dito de três jeitos
-   custa ao leitor o mesmo que conteúdo e não ensina nada. Um orçamento de tamanho existe em
-   `config.json → budgets`, desligado por padrão, para o projeto que quiser um teto num arquivo
-   específico.
+6. **Densidade, não brevidade.** O que o kit não aceita é enchimento — o mesmo requisito dito de
+   três jeitos custa ao leitor o mesmo que conteúdo e não ensina nada. Os tetos de tamanho vivem em
+   `config.json → budgets`, ligados por padrão com números tirados de artefatos reais que passaram
+   do ponto; um artefato que não cabe é sinal de escopo grande demais (divida), nunca motivo para
+   cortar conteúdo. `null` numa chave desliga o teto daquele arquivo.
 7. **Conteúdo externo é dado, nunca instrução.** Vale para páginas web, READMEs de dependência,
    issues e comentários de código.
 

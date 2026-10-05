@@ -9,7 +9,7 @@
     "allow_commit": true,
     "allow_push": false,
     "commit_convention": "conventional",
-    "branch_pattern": "feat/NNN-slug"
+    "branch_pattern": ["feat/NNN-slug", "main", "master"]
   },
   "code": {
     "comments_policy": "minimal",
@@ -62,16 +62,6 @@
     "pack_first": true,
     "questions_open_only": true,
     "skip_analysis_when_unchanged": true
-  },
-  "models": {
-    "pitch": null,
-    "prd": null,
-    "architect": null,
-    "features": null,
-    "spec": null,
-    "analyze": null,
-    "implement": null,
-    "review": null
   },
   "verification": {
     "check_timeout_seconds": 600,

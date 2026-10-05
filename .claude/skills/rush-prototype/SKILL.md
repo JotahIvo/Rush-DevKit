@@ -1,8 +1,9 @@
 ---
 name: rush-prototype
-description: Generate a single throwaway static HTML+CSS mockup of a feature's user flow from its PRD and contracts, so the user can see the flow before anything is built. Invoke explicitly after /rush-contracts (or /rush-spec, if the feature has no API) when the user wants to look at a flow, not read a spec.
+description: Generate a single throwaway static HTML+CSS mockup of a feature's user flow from its spec and contracts, so the user can see the flow before anything is built. Invoke explicitly after /rush-spec when the user wants to look at a flow, not read a spec.
 argument-hint: "<feature-id or slug>"
 model: sonnet
+effort: low
 disable-model-invocation: true
 ---
 
@@ -47,7 +48,7 @@ Read before acting, in this order:
 7. **This is disposable by definition.** It is a throwaway visual aid, never a starting point.
    It must never be imported, adapted, referenced from, or promoted into production code by any
    later skill or by a human copy-pasting it. Say this explicitly in your report to the user, and
-   bake a visible banner into the file itself (Guardrail 12) so the fact survives outside this
+   bake a visible banner into the file itself (Guardrail 11) so the fact survives outside this
    conversation.
 8. **Single file, zero build.** Everything — CSS, any JS, all markup — lives inline in one
     `index.html`. No `<link>`, `<script src>`, `@import`, web font, icon set or asset pulled from a
@@ -65,7 +66,7 @@ Read before acting, in this order:
 
 ## Process
 
-1. **Resolve the feature** and confirm `prd.md`/`spec.md` and at least one contract file exist. If
+1. **Resolve the feature** and confirm `spec.md` and at least one contract file exist. If
    contracts are missing entirely and the feature has interfaces in `spec.md`, stop and suggest
    `/rush-contracts` first — mocking data with invented field names defeats the point of this skill.
 
@@ -77,7 +78,7 @@ Read before acting, in this order:
    values from the contracts. Keep the data minimal — enough instances to make the flow legible
    (e.g. 3 list items, not 30).
 
-4. **Write `specs/<id>/prototype/index.html`**: banner first (Guardrail 13), then the screens as
+4. **Write `specs/<id>/prototype/index.html`**: banner first (Guardrail 11), then the screens as
    sections or simple JS-toggled views, styled with a `<style>` block, referencing only the mock
    data. Keep markup and CSS plain — this is a flow diagram rendered as HTML, not a design comp.
 
@@ -103,5 +104,5 @@ Do not paste the HTML into the chat — open-the-file is the point.
 - [ ] No external network reference of any kind (no CDN, no remote font, no `<link href="http...">`)
 - [ ] The disposable-prototype banner is present both as an HTML comment and as visible on-page text
 - [ ] Every mocked field name matches the feature's contract(s) exactly
-- [ ] The screens shown correspond to states actually described in `prd.md`/`spec.md`, nothing invented
+- [ ] The screens shown correspond to states actually described in `spec.md`, nothing invented
 - [ ] Styling is plain — the file communicates flow, not final visual design

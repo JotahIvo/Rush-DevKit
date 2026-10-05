@@ -2,7 +2,8 @@
 name: rush-spec
 description: Write the technical specification, implementation plan, task list and executable done-contract (with its acceptance criteria) for one feature, generating any contract files its interfaces need along the way, after its PRD and architecture exist. Use when starting work on a feature from the backlog produced by /rush-features.
 argument-hint: "<feature-id or slug>"
-model: opus
+model: sonnet
+effort: high
 disable-model-invocation: false
 ---
 
@@ -83,10 +84,13 @@ map must be fixed first, because a spec written against a broken map inherits th
 
 ## Process
 
-1. **Resolve the feature.** Features live nested under their spec (`specs/<spec-id>/<feature-id>/`).
+1. **Resolve the feature, and claim it.** Features live nested under their spec
+   (`specs/<spec-id>/<feature-id>/`). Once resolved, run
+   `.rush/scripts/set-current.sh --feature <feature-id> --json` so the project's cursor points at
+   the feature actually being worked on rather than at whichever one was created last.
    If it already exists, locate it (a bare id/prefix resolves across specs; if that's ambiguous,
    the error names the colliding specs — ask the user which one). If it does not exist yet, this
-   spec must already exist first (created by `/rush-pitch` via `new-spec.sh` — this command does
+   spec must already exist first (created by `/rush-prd` via `new-spec.sh` — this command does
    not create specs, only features inside one): run
    `.rush/scripts/new-feature.sh <spec-id> <slug> --json`, using the current spec
    (`.rush/scripts/session-start.sh --json` → `current_spec`) unless the user named a different one.
@@ -129,7 +133,7 @@ map must be fixed first, because a spec written against a broken map inherits th
      declared owner in the map is a map gap — report it, do not silently invent ownership.
    - Generate the contract file in the matching format (OpenAPI for REST, JSON Schema for
      data/entity contracts, AsyncAPI for events), matching the endpoint/event names in `spec.md`
-     exactly, per Guardrail 12 (error responses, pagination, idempotency where applicable).
+     exactly, per Guardrail 10 (error responses, pagination, idempotency where applicable).
    - Run `.rush/scripts/validate-contracts.sh <feature-id> --json`. Fix every violation and
      re-run, up to 3 iterations. If it still fails, stop and report exactly what fails — do not
      ship an invalid contract to make this step look complete.
@@ -175,8 +179,8 @@ map must be fixed first, because a spec written against a broken map inherits th
 
 ## Output
 
-Files written under `specs/<feature-id>/` (and, when contracts were generated, under
-`specs/<feature-id>/contracts/` or `specs/shared-contracts/`). Report to the user, in ≤ 10 lines:
+Files written under `specs/<spec-id>/<feature-id>/` (and, when contracts were generated, under
+its `contracts/` or `specs/shared-contracts/`). Report to the user, in ≤ 10 lines:
 
 - feature id and path
 - number of acceptance criteria and how many are covered by automated checks vs human gates

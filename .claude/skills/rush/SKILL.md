@@ -1,6 +1,6 @@
 ---
 name: rush
-description: Classify an incoming change request as S/M/L scope from natural language and route it to the right Rush workflow — direct edit, /rush-quick, or /rush-pitch — the entry point for any new request in a Rush-managed project.
+description: Classify an incoming change request as S/M/L scope from natural language and route it to the right Rush workflow — direct edit, /rush-quick, or /rush-prd — the entry point for any new request in a Rush-managed project.
 argument-hint: "<describe what you want to change>"
 model: haiku
 disable-model-invocation: false
@@ -9,7 +9,7 @@ disable-model-invocation: false
 ## Purpose
 
 Read one request and decide how much process it deserves: a direct edit (S), the lean
-`/rush-quick` path (M), or the full pitch → PRD → architecture → spec flow (L). This skill never
+`/rush-quick` path (M), or the full PRD → architecture → features → spec flow (L). This skill never
 edits code, never writes a spec, and never designs anything — it classifies and hands off. If you
 find yourself about to implement something, you have already gone past your job.
 
@@ -78,8 +78,10 @@ find yourself about to implement something, you have already gone past your job.
    - **S** → tell the user to make the edit directly in this session, then run `rush-verifier`
      followed by a micro-review before calling it done. Do not create a feature directory for S.
    - **M** → hand off to `/rush-quick "<request>"`.
-   - **L** → hand off to `/rush-pitch "<request>"`, the start of the full pitch → PRD →
-     architecture → spec flow.
+   - **L** → hand off to `/rush-prd "<request>"`, the start of the full flow. Name
+     `/rush-pitch "<request>"` instead **only** when the request is genuinely one vague sentence
+     with no stated problem behind it — the pitch is an optional shaping step for exactly that
+     case, and routing a well-understood request through it just adds a document.
 
 ## Output
 
@@ -94,5 +96,6 @@ micro-review afterward). No artifact, no code change, no feature directory.
 - [ ] Product uncertainty was weighed even when file-count signals looked small
 - [ ] At most one question was asked, and only when signals disagreed or confirmation was required
 - [ ] The reasoning was stated in one or two lines naming the deciding signal
-- [ ] The user was routed to exactly one next step (direct edit + `rush-verifier`, `/rush-quick`, or
-      `/rush-pitch`), and this skill produced no code, spec, or feature directory itself
+- [ ] The user was routed to exactly one next step (direct edit + `rush-verifier`, `/rush-quick`,
+      or `/rush-prd` — `/rush-pitch` only for a genuinely unshaped one-liner), and this skill
+      produced no code, spec, or feature directory itself

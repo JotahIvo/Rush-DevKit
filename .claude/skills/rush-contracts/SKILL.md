@@ -3,6 +3,7 @@ name: rush-contracts
 description: Regenerate or re-sync a feature's machine-checkable API/event contracts (OpenAPI, JSON Schema, AsyncAPI) after spec.md's Interfaces section changed post-freeze. Use when an interface needs to change after /rush-spec already generated and froze its contract — not for the first contract on a new spec, which /rush-spec generates itself.
 argument-hint: "<feature-id or slug>"
 model: sonnet
+effort: medium
 disable-model-invocation: false
 ---
 
@@ -67,7 +68,7 @@ Read before acting, in this order:
 
 1. **Resolve the feature** and read `spec.md`'s Interfaces section. List every interface this
    feature provides and every one it consumes, exactly as declared there. If a contract already
-   exists for one of them, this is the re-sync case (Guardrail 9) — note what changed since it was
+   exists for one of them, this is the re-sync case (Guardrail 7) — note what changed since it was
    last generated so step 5's cross-check has something concrete to compare against.
 
 2. **Classify each provided interface** using `specs/integration-map.md`: consumed by exactly this
@@ -78,7 +79,7 @@ Read before acting, in this order:
 
 3. **Generate each contract file** in the appropriate format (OpenAPI for REST, JSON Schema for
    data/entity contracts, AsyncAPI for events), matching the endpoint/event names in `spec.md`
-   exactly. Include, per Guardrail 11: error responses, pagination, idempotency where applicable.
+   exactly. Include, per Guardrail 9: error responses, pagination, idempotency where applicable.
    For an interface this feature only *consumes*, do not generate a file — reference the existing
    one's path in `spec.md` instead.
 

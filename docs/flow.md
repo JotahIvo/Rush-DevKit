@@ -51,7 +51,7 @@ Roteamento final:
 
 ```
 (/rush-pitch)  →  /rush-prd  →  /rush-architect  →  /rush-features  →  /rush-spec (por feature,
-    opcional                                                            gera prd + contratos junto —
+    opcional                                                            gera contratos junto —
                                                                         ou /rush-spec-all p/ todas)
                                                                             │
                                                               /rush-prototype (opcional)
@@ -95,17 +95,19 @@ Cada seta é uma fronteira de dono do artefato — nunca uma etapa arbitrária:
    o grafo `provides`/`consumes`, os contratos compartilhados com dono único, e as journeys — o
    mecanismo que impede uma feature de existir isolada. Ver [`integration.md`](./integration.md).
 5. **`/rush-spec`** (uma vez por feature, na ordem topológica que o integration map devolve, ou
-   `/rush-spec-all <spec-id>` para rodar o processo em todas de uma vez) — `prd.md` (a fatia de
-   produto daquela feature: quem serve, quais `FR-NNN` do PRD do spec ela entrega, o que deixa
-   explicitamente para uma feature irmã), `spec.md`, `plan.md`, `tasks.md`, `done-contract.md`
-   (com os critérios de aceite embutidos); quando a feature expõe
+   `/rush-spec-all <spec-id>` para rodar o processo em todas de uma vez) — `spec.md` (com a seção
+   **Traceability**: quais `FR-NNN` do PRD do spec a feature entrega e quais deixa explicitamente
+   para uma irmã), `plan.md`, `tasks.md`, `done-contract.md` (com os critérios de aceite
+   embutidos) — e `prd.md` da feature só com `artifacts.feature_prd: "on"`; quando a feature expõe
    uma interface, os contratos (OpenAPI/JSON Schema/AsyncAPI) são gerados no mesmo processo,
    congelados antes da implementação. `/rush-contracts` continua existindo, mas só para
    re-sincronizar um contrato depois de mudado, ou gerar um que ficou pendente.
 6. **`/rush-prototype`** (opcional, invocação explícita) — um HTML estático e descartável do fluxo,
    nunca promovido a código real.
 7. **`/rush-analyze`** — gate de consistência go/no-go entre spec, plan, contratos, constitution e
-   integration map. Veredito sempre binário.
+   integration map, **numa rodada só**: o que é mecânico ele corrige, o que é decisão ele pergunta
+   e espera, e re-verifica até o veredito final. Veredito sempre binário, e nunca termina pedindo
+   para rodar de novo.
 8. **`/rush-implement`** — código, task por task, cada uma verificada pelo `rush-verifier`.
 9. **`/rush-review`** — revisão assistida e interativa antes do gate `feature_close`.
 10. **`/rush-pr`** — escreve `specs/<spec-id>/pr.md`, a descrição do pull request do **spec
@@ -140,8 +142,8 @@ mudanças num projeto maduro é M, e forçá-las pelo fluxo completo seria peso 
 A regra mais importante desta skill é a **escalação imediata**: se em qualquer ponto — explorando o
 código, escrevendo o spec ou definindo as tasks — ela encontra uma mudança de contrato existente,
 uma migration, uma dependência nova ou um path sensível, ela **para ali mesmo**, não termina os
-artefatos, não segue para `/rush-implement`, e redireciona para `/rush-pitch` no mesmo slug de
-feature (nada do trabalho já feito é perdido). Isso existe porque artefatos M não passam por
+artefatos, não segue para `/rush-implement`, e redireciona para `/rush-prd` no mesmo
+spec (nada do trabalho já feito é perdido). Isso existe porque artefatos M não passam por
 revisão de arquitetura nem PRD — não têm como pegar o que uma mudança maior precisava.
 
 Mesmo no caminho rápido, se a mudança fornece ou consome algo que outra feature poderia tocar, o

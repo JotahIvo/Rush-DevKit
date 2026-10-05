@@ -77,7 +77,7 @@ herdou o default de uma versão anterior?"**. Um valor igual ao default antigo n
 acompanha o kit. Um valor diferente foi escolha: fica, e é reportado.
 
 Elas vivem em `.rush/migrations/<versão>.py` **do kit novo**, e o runner aplica em ordem toda
-migração cujo `VERSION` está em `(instalada, nova]`. As duas que existem hoje são exemplos reais:
+migração cujo `VERSION` está em `(instalada, nova]`. As que existem hoje são exemplos reais:
 
 - **0.5.0** — `git.branch_pattern` deixou de ser decorativo e passou a ser aplicado pelo
   `guard-bash.sh`. Um projeto carregando a string default `"feat/NNN-slug"` começaria a ter todo
@@ -86,6 +86,12 @@ migração cujo `VERSION` está em `(instalada, nova]`. As duas que existem hoje
   agora é aplicada.
 - **0.6.0** — os `budgets` viraram `null`. Cada chave igual ao default antigo é liberada; uma
   diferente (um `claude_md: 40` que alguém apertou de propósito) fica e é reportada.
+- **0.8.0** — chegam `artifacts.feature_prd` e `context.*`. Os `budgets` voltam ligados para
+  projeto novo, mas **não** são escritos num config existente: a migração relata os números e
+  deixa a escolha, porque reprovar ontem-verde em arquivo que ninguém tocou não é migração.
+- **0.8.1** — `models.*` sai do config: nada nunca leu a chave (o modelo vive no frontmatter de
+  cada skill) e o schema não a aceita mais. Tudo `null` sai em silêncio; um valor setado também
+  sai, mas é reportado com `attention`, apontando para o `model:` do frontmatter.
 
 ## O que o script decide e o que o agente decide
 
