@@ -136,7 +136,10 @@ rejected options.
 an executable check into `.rush/memory/fitness/<name>.sh` with the `# description:` and
 `# scope:` headers, exiting 0 when the rule holds and 1 when it is broken. Examples: module A must
 not import module B; every route declares a response schema; no direct database access from
-controllers; p95 of this endpoint under budget in the integration test. Verify each script runs:
+controllers; p95 of this endpoint under budget in the integration test. On failure each script
+prints, per violation, where (`file:line`), which rule and decision it breaks, and how to fix it —
+the implementer corrects itself from that output, and a bare "violation" costs a blind retry.
+Verify each script runs:
 `.rush/scripts/fitness.sh <feature-id> --json`.
 
 **5. Write the full architecture document** into `specs/<spec-id>/architecture.md` from

@@ -73,7 +73,7 @@ ou falha interna.
 | `rush-spec` | 4 | orçamento aplicado a partir de `config.json → budgets`, vazamento de processo na spec (fronteira O QUE/COMO), critério de aceite sem check, spec bloqueada por integration map quebrado |
 | `rush-features` | 4 | integration map válido, consumo sem provedor, jornada sem teste, provedor duplicado |
 | `rush-implement` | 4 | não promove a si mesmo, edição de teste bloqueada, não afrouxa teste para passar, para no orçamento de tentativas |
-| `rush-analyze` | 3 | violação de MUST da constitution nunca resolvida sem decisão do usuário, scripts verdes não bastam para GO, critério não coberto é resolvido sem afrouxar o gate — nunca pedindo outra rodada |
+| `rush-analyze` | 4 | violação de MUST da constitution nunca resolvida sem decisão do usuário, scripts verdes não bastam para GO, critério não coberto é resolvido sem afrouxar o gate, fronteira entre features verificada só com mock vira decisão — nunca pedindo outra rodada |
 | `kit` | 5 | construto que quebra bash 3.2, referência de skill a script/template inexistente, `branch_pattern` aplicado de fato (e desligável), cursor de feature seguindo a atenção e não a criação, atualização que nunca toca em arquivo do projeto |
 | `rush` | 2 | path sensível força L mesmo em diff de uma linha, correção trivial fica em S |
 | `rush-quick` | 1 | escala em vez de empurrar quando aparece migration/contrato/dependência/path sensível |

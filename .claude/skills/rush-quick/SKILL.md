@@ -123,7 +123,9 @@ same six files `/rush-spec` used to is just `/rush-spec` with fewer artifacts at
    ```json block with at least one acceptance-test check — plus `validate-contracts.sh` /
    `validate-integration-map.sh` checks if an interface was touched — and the **Acceptance Criteria
    Coverage** table mapping every criterion to a check or a human gate. Add a human gate only where
-   a check genuinely can't cover the criterion — minimal does not mean unenforced.
+   a check genuinely can't cover the criterion — minimal does not mean unenforced. If an interface
+   another feature consumes was touched, the acceptance check must run that boundary for real, not
+   against a mock of the other side.
 
 9. **If you escalated at any point**, stop the artifact work where it stands, do not write
    `done-contract.md` if you haven't reached it, and report: what you found, which guardrail it

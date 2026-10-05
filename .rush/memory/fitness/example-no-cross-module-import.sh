@@ -17,7 +17,10 @@
 #   - runs with the project root as its current working directory
 #   - exit 0 = pass, exit 1 = fail (any non-zero = fail)
 #   - on failure, print what it found to stdout/stderr; fitness.sh keeps
-#     the last 40 lines and only shows them when the check fails
+#     the last 40 lines and only shows them when the check fails. Per
+#     violation, say where (file:line), which rule/decision it breaks and
+#     how to fix it - the implementing agent corrects itself from this
+#     output, and a bare "violation" costs it a blind retry
 #   - no network, no writes outside a temp dir
 #
 # What this example checks: source files under src/<module>/ must not
@@ -53,6 +56,7 @@ while IFS= read -r match; do
   if [ -n "$file_module" ] && [ -n "$target_module" ] && [ "$file_module" != "$target_module" ]; then
     echo "cross-module internal import: $file:$line_no imports $target_module/internal from module '$file_module'"
     echo "    $content"
+    echo "    fix: import from '../$target_module' (its public entry point) instead; if what you need is not exported there, export it from $MODULES_ROOT/$target_module/index rather than reaching into internal/"
     violations=$((violations + 1))
   fi
 done < <(grep -rnE "from ['\"]\.\./[^'\"]+/internal/" "$MODULES_ROOT" --include='*.ts' --include='*.tsx' --include='*.js' --include='*.jsx' 2>/dev/null || true)

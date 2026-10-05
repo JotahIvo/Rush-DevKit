@@ -49,7 +49,7 @@ Duas colunas merecem nota:
 
 | Skill | O que faz | Trigger | Modelo | O que NÃO faz |
 |---|---|---|---|---|
-| `/rush-quick` | Caminho rápido para mudanças de porte M: um `spec.md` condensado, `tasks.md` e um `done-contract.md` mínimo, sem pitch/PRD/arquitetura, com handoff para `/rush-implement`. | auto | sonnet | Nunca produz conteúdo de `pitch.md`/`prd.md`/`architecture.md`; escala imediatamente para `/rush-pitch` (fluxo L) no instante em que detecta mudança de contrato existente, migration, dependência nova ou path sensível. |
+| `/rush-quick` | Caminho rápido para mudanças de porte M: um `spec.md` condensado, `tasks.md` e um `done-contract.md` mínimo, sem pitch/PRD/arquitetura, com handoff para `/rush-implement`. | auto | sonnet | Nunca produz conteúdo de `pitch.md`/`prd.md`/`architecture.md`; escala imediatamente para `/rush-prd` (fluxo L) no instante em que detecta mudança de contrato existente, migration, dependência nova ou path sensível. |
 | `/rush-implement` | Implementa uma feature task por task a partir de spec/plan/tasks, com cada task verificada pelo `rush-verifier` antes de avançar, e escalando quando uma task resiste. | manual | sonnet | Não decide o quê construir, nem a arquitetura; nunca marca nada como pronto (só o verifier promove); nunca afrouxa um check existente sem aprovação humana explícita (`autonomy.edit_tests`). |
 
 ## Revisão

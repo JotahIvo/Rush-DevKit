@@ -1,227 +1,229 @@
 <div align="center">
 
-# Rush DevKit
+<img src="docs/assets/rush-logo.png" alt="Rush DevKit" width="560">
 
-**Spec-Driven Development + Agent Harness para Claude Code.**
+**Spec-driven development and an agent harness for Claude Code.**
 
-Um kit que você clona para dentro do seu repositório, roda um comando, e ele se adapta ao *seu*
-projeto — stack, arquitetura, convenções e produto — em vez de impor um processo genérico.
+Drop it into your repository, run one command, and it adapts to *your* project (stack,
+architecture, conventions, product) instead of imposing a generic process.
+
+`v1.0.0` · MIT
 
 </div>
 
 ---
 
-## O problema
+## Why Rush
 
-Processos de spec-driven development costumam falhar de três formas previsíveis, todas
-documentadas por quem usou os kits existentes em projetos reais:
+Spec-driven development with coding agents tends to fail in three predictable ways:
 
-| O que acontece | Por quê |
+| What happens | Why |
 |---|---|
-| **Toneladas de markdown** — 2.500 linhas de spec para 600 de código | O processo trata toda mudança como grande |
-| **Features que não se grudam** — cada uma funciona sozinha, o fluxo do usuário quebra | Specs escritas isoladamente, sem contratos entre features |
-| **"Pronto" que não é pronto** | O agente se autoavalia e sempre se aprova |
+| **Mountains of markdown**: 2,500 lines of spec for 600 lines of code | Every change is treated as a big change |
+| **Features that don't connect**: each one works alone, the user journey breaks | Specs are written in isolation, with no contracts between features |
+| **"Done" that isn't done** | The agent grades its own work and always passes |
 
-O Rush DevKit é construído em cima dessas falhas, não apesar delas. Cada uma tem uma defesa
-mecânica — não um pedido educado no prompt.
+Rush DevKit is built around those failures. Each one has a mechanical defense rather than a polite
+request in a prompt.
 
-## Como ele responde
+## What you get
 
-**Processo proporcional ao problema.** A porta de entrada é uma triagem: `/rush` classifica o
-pedido em S / M / L com sinais determinísticos (nº de arquivos, contrato, migration, dependência
-nova, path sensível). O fluxo completo é para o que é grande; o resto pega atalho de primeira
-classe.
+**A process sized to the problem.** `/rush` triages every request into **S / M / L** from
+deterministic signals: files touched, contracts, migrations, new dependencies, sensitive paths.
+Small changes go straight to code, medium ones get a lean spec, and only large ones run the full
+flow.
 
-**Features que se conectam por construção.** Todo feature declara o que **provê** e o que
-**consome** num `integration-map.md` validado por script: consumo sem provedor, provedor duplicado
-e ciclo de dependência são **erros de build**, não avisos. Interfaces usadas por 2+ features vivem
-em `shared-contracts/` com dona declarada. As jornadas do usuário viram **journey tests** — a
-feature fecha sozinha, mas a entrega só fecha quando o fluxo que atravessa as features passa.
+**Features that connect by construction.** Every feature declares what it **provides** and what it
+**consumes** in an `integration-map.md`, and a script validates it. A consumer with no provider, a
+duplicate provider or a dependency cycle is a build error, not a warning. Interfaces shared by two
+or more features live in `shared-contracts/` with a declared owner. User journeys become
+**journey tests**: a feature can close on its own, but a delivery only closes when the flow across
+features passes.
 
-**"Pronto" é executável.** Cada task carrega seu comando de verificação; cada feature tem um
-`done-contract.md` com um bloco JSON de checks e human gates, negociado **antes** da primeira
-linha de código. Só o subagent `rush-verifier` promove status — e um hook bloqueia quem tentar
-promover a si mesmo. O mesmo contrato é, ao mesmo tempo, o critério de parada do loop e o grader
-dos evals.
+**"Done" you can execute.** Every task carries its own verification command. Every feature has a
+`done-contract.md` with acceptance criteria, a JSON block of checks and the human gates, agreed
+**before** the first line of code. Only the `rush-verifier` subagent can promote a task, and a hook
+blocks anyone else who tries.
 
-**O harness impõe, o prompt só pede.** Política de commit, comandos bloqueados, edição de teste,
-scan de segredo, paths sensíveis: tudo em `config.json`, tudo aplicado por hooks do Claude Code.
-Regra de segurança nunca vive só em prosa.
+**A harness that enforces, not asks.** Commit policy, blocked commands, test editing, secret
+scanning and sensitive paths are all declared in `.rush/config.json` and enforced by Claude Code
+hooks. No safety rule lives only in prose.
 
-## Instalação
+**A gate that resolves instead of bouncing you around.** `/rush-analyze` checks spec, plan, tasks,
+contracts, constitution and integration map for consistency, fixes what is mechanical, asks you
+what is a decision, and gives a binary GO / NO-GO verdict in a **single run**.
 
-Requisitos: [Claude Code](https://claude.com/claude-code), `git`, `bash`, `python3`.
+**Built to keep token spend down.** Each skill pins its own model and effort, so `opus` is used
+only where a decision is made once and inherited by everything after it. Artifacts have line
+budgets. Each command reads one context pack instead of opening every document. Subagents run in
+isolated contexts and return only their result.
 
-```bash
-git clone https://github.com/<voce>/rush-devkit.git /tmp/rush-devkit
-/tmp/rush-devkit/install.sh /caminho/do/seu/repo
-```
+**A ratchet, not a rulebook.** `/rush-retro` turns every real failure into a permanent mechanism
+(an eval case, a fitness function, a hook) and retires rules that never fire.
 
-Depois, dentro do seu repositório, no Claude Code:
+## Quick start
 
-```
-/rush-init          # projeto existente: detecta, explora, entrevista e configura o harness
-/rush-new "ideia"   # projeto do zero: descoberta → stack → scaffold → PRD do MVP → specs
-```
-
-Verifique a instalação com `.rush/scripts/doctor.sh`.
-
-Para levar um projeto já instalado para uma versão nova do kit, **não** rode o `install.sh` de
-novo — ele tem dois modos e os dois estão errados para isso (um pula tudo que existe, o outro
-sobrescreve o seu `config.json` e a sua memória). O comando é o `update.sh`:
+Requirements: [Claude Code](https://claude.com/claude-code), `git`, `bash`, `python3`. No other
+dependency is installed.
 
 ```bash
-git clone https://github.com/<voce>/rush-devkit.git /tmp/rush-devkit
-/tmp/rush-devkit/update.sh /caminho/do/seu/repo --dry-run
+git clone https://github.com/JotahIvo/Rush-DevKit.git /tmp/rush-devkit
+/tmp/rush-devkit/install.sh /path/to/your/repo
 ```
 
-Ele traz os arquivos do kit, preserva o que é do projeto, migra o `config.json` onde a semântica
-de uma chave mudou, e deixa para o `/rush-update` só o que exige julgamento. Detalhes em
-[`docs/updating.md`](docs/updating.md).
-
-## O fluxo
+Then, inside your repository, in Claude Code:
 
 ```
-                         ┌── S ──► edita direto ──► verifier ──► micro-review
-      /rush  ────────────┤
-    (triagem)            ├── M ──► /rush-quick ──► /rush-implement ──► /rush-review
-                         │
-                         └── L ──► (/rush-pitch) ──► /rush-prd ──► /rush-architect
-                                       opcional           │
-                                                          │
-                                   /rush-features ──► /rush-spec (gera contratos)    
-                                        │              [ou /rush-spec-all p/ todas as features]
-                                        │                                  │
-                                        │                        /rush-prototype (opcional)
-                                        │                                  │
-                                   /rush-analyze ──► /rush-implement ⇄ rush-verifier
-                                        │
-                                   /rush-review ──► /rush-pr ──► /rush-retro
+/rush-init           # existing project: detect, explore, interview, configure the harness
+/rush-new "idea"     # new project: discovery → stack → scaffold → MVP PRD → specs
+/rush "what you want to change"   # every request after that starts here
 ```
 
-## Os agentes
+Run `.rush/scripts/doctor.sh` to check the installation.
 
-**Adaptação** — `rush-init` (adapta a repo existente) · `rush-new` (cria projeto do zero) ·
-`rush-doctor` (saúde da instalação e do processo)
+**Updating.** Don't re-run `install.sh` on a project that already has the kit. Use `update.sh`
+instead: it brings in kit files, keeps what your project owns and migrates `config.json`. It leaves
+only real conflicts to `/rush-update`.
 
-**Descoberta** — `rush-prd` (o PRD completo do spec: requisitos `FR-NNN` testáveis, atributos de
-qualidade com alvo, journeys, métricas — a porta de entrada do fluxo L) ·
-`rush-architect` (13 disciplinas a partir do PRD, candidatos com trade-offs, ADR e
-**fitness functions**) · `rush-pitch` (*opcional*: para quando a ideia ainda é uma frase)
+```bash
+/tmp/rush-devkit/update.sh /path/to/your/repo --dry-run
+```
 
-**Especificação** — `rush-features` (integration map) · `rush-spec` (spec + plan + tasks +
-done-contract + contratos, numa passada) · `rush-spec-all` (roda `rush-spec` para todas as features de um spec) · `rush-contracts`
-(re-sincroniza um contrato depois de congelado) · `rush-prototype`
+## The flow
 
-**Implementação** — `rush-analyze` (gate go/no-go) · `rush-implement` (uma task por vez, com
-orçamento de tentativas e escalação) · `rush-quick` (caminho M)
+```
+                    ┌─ S ─► edit directly ─► rush-verifier ─► micro-review
+     /rush ─────────┤
+   (triage)         ├─ M ─► /rush-quick ─► /rush-implement ─► /rush-review
+                    │
+                    └─ L ─► (/rush-pitch) ─► /rush-prd ─► /rush-architect ─► /rush-features
+                              optional                                           │
+                                                 ┌───────────────────────────────┘
+                                                 ▼
+                              /rush-spec  or  /rush-spec-all   (+ /rush-prototype, optional)
+                                                 │
+                                                 ▼
+                              /rush-analyze ─► /rush-implement ⇄ rush-verifier
+                                                 │
+                                                 ▼
+                              /rush-review ─► /rush-pr ─► /rush-retro
+```
 
-**Revisão** — `rush-review` (review assistida, arquivo por arquivo, no ritmo do humano) ·
-`rush-pr` (descrição do PR de um spec inteiro, no formato que você definiu uma vez) ·
-`rush-retro` (transforma falhas em evals e regras) · `rush-brief` (handoff)
+## Skills
 
-**Sessão** — `rush-context-save` / `rush-context-load` (salva e recupera o que existe só na
-conversa: decisões, o que foi descartado e por quê, a thread em aberto)
+22 skills (`/rush-*` commands) and 4 subagents. **Auto** skills can be triggered by Claude when
+your request matches. **Manual** skills run only when you type the command, because they create or
+change many files.
 
-**Manutenção** — `rush-doctor` (saúde) · `rush-update` (merge em três vias do que a atualização do
-kit deixou em conflito)
+### Entry and setup
 
-**Subagents** — `rush-explorer` (leitura de código, read-only) · `rush-researcher` (pesquisa com
-fontes) · `rush-verifier` (o único que promove uma task a `done`)
-
-Referência completa em [`docs/agents.md`](docs/agents.md).
-
-## O harness
-
-- **`config.json`** — contrato do projeto: idiomas, política de commit, gates human/auto,
-  autonomia (`max_attempts_per_task`, `edit_tests`, `migrations`, `new_dependency`), paths
-  sensíveis, comandos bloqueados, orçamentos de artefato.
-- **Hooks** — `guard-bash` (comandos bloqueados, política de commit/push, padrão de branch, scan de
-  segredos, convenção de commit) · `guard-edit` (só o verifier promove task; config e constitution
-  exigem humano; **nunca afrouxar um teste para passar**) · `post-edit` (formatter) ·
-  `session-start` (ritual de início).
-- **Scripts determinísticos** — detecção de stack, triagem, validação de artefatos/contratos/
-  integration map, `done-check`, `check-as-built` (spec drift), fitness functions, secret scan,
-  doctor, eval runner. Contrato completo em
-  [`docs/internals/script-interfaces.md`](docs/internals/script-interfaces.md).
-- **Memória** — `constitution.md` (nasce mínima, cresce por *ratchet*), `product.md`,
-  `architecture.md`, `decisions/` (ADRs), `lessons.md` (falha → regra criada),
-  `debt.md` (débito registrado, não perdido), `pr-preferences.md` (o formato de PR do projeto,
-  definido uma vez) e `sessions/` (contexto de conversa salvo por `/rush-context-save` — scratch
-  local, fora do git). Cada spec tem seu próprio
-  `specs/<spec-id>/questions.md` (Q&A assíncrono não-bloqueante) e `architecture.md` (arquitetura
-  completa daquele spec — `.rush/memory/architecture.md` guarda só o resumo condensado de cada um).
-
-## Modelos recomendados
-
-O modelo é definido no frontmatter de cada skill — fonte única, sem duplicar em config.
-
-| Modelo | Agentes | Racional |
+| Command | What it does | Model |
 |---|---|---|
-| `opus` (`effort: high`) | init, new, architect, prd, features, update | Decisão que roda uma vez e que todo o resto herda |
-| `sonnet` (`effort: high`) | spec, spec-runner, analyze, implement, quick, review | O que roda por feature e vira execução — com verificação determinística atrás |
-| `sonnet` (`medium`/`low`) | pitch, contracts, retro, prototype | Saída derivada de um artefato que já existe |
-| `haiku` | rush (triagem), doctor, brief, context-save, context-load, pr, spec-all, verifier, explorer, researcher | Executam script, resumem, recuperam ou orquestram |
+| `/rush` | Triages a request into S / M / L and routes it to the right path. It never implements anything itself. | haiku |
+| `/rush-init` | Adapts the harness to an existing repo: detects the stack, maps the real architecture, interviews you about product and unwritten conventions, then generates `CLAUDE.md`, the constitution, memory and `config.json`. *Manual.* | opus |
+| `/rush-new` | Builds a new product from zero: discovery, stack choice with trade-offs, scaffold with the official generator, minimal harness, MVP PRD and the full spec queue. *Manual.* | opus |
 
-Explorer e researcher sobem para `sonnet` só quando a pergunta pede (decisão estrutural ou
-`CONFIDENCE: low`). O `model` de uma skill vale só no turno que a invoca — numa skill interativa, o
-resto roda no modelo da sessão, então rode a sessão em `sonnet`. Detalhes em
-[`kit-conventions.md`](docs/internals/kit-conventions.md#modelos-e-esforço-por-agente).
+### Discovery
 
-## Documentação
+| Command | What it does | Model |
+|---|---|---|
+| `/rush-pitch` | *Optional.* Shapes an idea that is still one sentence into a pitch: problem, audience, appetite, solution shape, risks, out of scope. | sonnet |
+| `/rush-prd` | The entry point of the L flow. Writes the spec's PRD: testable `FR-NNN` requirements, quality attributes with measurable targets, journeys, success metrics. | opus |
+| `/rush-architect` | Designs the architecture from the PRD across 13 disciplines. Compares 2–3 candidates, records an ADR, and writes executable **fitness functions**. | opus |
+
+### Specification
+
+| Command | What it does | Model |
+|---|---|---|
+| `/rush-features` | Splits a PRD into deliverable features and writes the integration map: who provides and consumes what, plus the journey tests that prove the features connect. | opus |
+| `/rush-spec` | Writes one feature's `spec.md`, `plan.md`, `tasks.md` and `done-contract.md` in a single pass, and generates the contract files (OpenAPI, JSON Schema, AsyncAPI) for the interfaces it provides. | sonnet |
+| `/rush-spec-all` | Runs `/rush-spec` for every feature of a spec, provider before consumer. Each feature runs in its own isolated subagent, and only the result comes back. *Manual.* | haiku |
+| `/rush-contracts` | Re-syncs a contract after its interface changed, or generates one that `/rush-spec` left pending. | sonnet |
+| `/rush-prototype` | Builds one throwaway static HTML/CSS mockup of a feature's flow. The mock data follows the contract shapes exactly. *Manual.* | sonnet |
+
+### Gate and implementation
+
+| Command | What it does | Model |
+|---|---|---|
+| `/rush-analyze` | Single-run go/no-go gate across all artifacts. It fixes what is mechanical, asks you what is a decision and re-verifies before the verdict. It never loosens a check to reach GO. | sonnet |
+| `/rush-implement` | Implements one task at a time. `rush-verifier` checks each task before the next one starts. Each task has an attempt budget, and the agent escalates when a task resists. *Manual.* | sonnet |
+| `/rush-quick` | The M path: a lean spec, a task list and a minimal done-contract, then hands off to `/rush-implement`. It escalates to the full flow when it finds a contract change, migration, new dependency or sensitive path. | sonnet |
+
+### Review and delivery
+
+| Command | What it does | Model |
+|---|---|---|
+| `/rush-review` | Walks you through the finished code file by file, at your pace, linking each change to the spec and ADRs, and records findings with their severity. | sonnet |
+| `/rush-pr` | Writes the pull request description for a whole spec, from its commits and each feature's done-check, in the format your project defined once. | haiku |
+| `/rush-retro` | Turns a closed feature's failures into eval cases, fitness functions or earned rules, retires dead ones, and audits debt and open questions. *Manual.* | sonnet |
+
+### Session and maintenance
+
+| Command | What it does | Model |
+|---|---|---|
+| `/rush-brief` | Summarizes a feature's state (progress, checks, questions, debt, exact next step) so another person or session can pick it up. | haiku |
+| `/rush-context-save` | Saves what exists only in the conversation (decisions, discarded options, the open thread) to a dense file. | haiku |
+| `/rush-context-load` | Restores a saved context in a new session, after checking whether the project changed since it was saved. | haiku |
+| `/rush-doctor` | Runs the health check and turns its findings into a prioritized report that ends in one action. | haiku |
+| `/rush-update` | Three-way merges the kit files a version update left in conflict, then runs the verification gate. *Manual.* | opus |
+
+### Subagents
+
+Skills dispatch subagents with a specific question. They are never called directly.
+
+| Subagent | What it does | Model |
+|---|---|---|
+| `rush-verifier` | Runs tests, lint, typecheck, build, fitness functions and done-contract checks. **The only actor that can mark work done.** | haiku |
+| `rush-explorer` | Read-only codebase exploration that returns a dense map with file paths and conventions. | haiku, escalates to sonnet |
+| `rush-researcher` | Researches external facts (library limits, protocols, prior art) and returns a summary with sources. | haiku, escalates to sonnet |
+| `rush-spec-runner` | Runs `/rush-spec` for one feature in an isolated context, on behalf of `/rush-spec-all`. | sonnet |
+
+Explorer and researcher report `CONFIDENCE: high | low`, and callers re-ask on `sonnet` only when
+the question needs it. A skill's model applies to the turn that invokes it, so run your session on
+`sonnet` (`/model sonnet`) to keep interactive skills cheap.
+
+## Under the hood
 
 | | |
 |---|---|
-| [Getting started](docs/getting-started.md) | Instalação e um passo a passo completo de uma feature |
-| [Fluxo](docs/flow.md) | Triagem S/M/L, gates e a fronteira O QUE / COMO |
-| [Agentes](docs/agents.md) | Referência das 22 skills e 4 subagents |
-| [Harness](docs/harness.md) | Config, hooks, loop do agente, memória |
-| [Definition of Done](docs/definition-of-done.md) | A cadeia de "pronto" em 4 níveis |
-| [Integração](docs/integration.md) | Integration map, shared contracts, journey tests |
-| [Configuração](docs/configuration.md) | Todas as chaves do `config.json` |
-| [Evals](docs/evals.md) | Como o kit é avaliado e melhora com o uso |
-| [Atualização](docs/updating.md) | Como levar um projeto já adaptado para uma versão nova do kit |
-| [Plano do kit](docs/plano-do-kit.md) | O documento de design que originou este projeto |
+| **`.rush/config.json`** | The project contract: languages, commit policy, human/auto gates, autonomy limits, sensitive paths, blocked commands, artifact budgets. |
+| **Hooks** | `guard-bash`: blocked commands, commit and push policy, branch pattern, secret scan. `guard-edit`: only the verifier promotes tasks; config and constitution need a human; never loosen a test to pass. `post-edit`: formatter. `session-start`: start-of-session ritual. |
+| **Scripts** | Deterministic stack detection, triage, artifact, contract and integration-map validation, `done-check`, spec-drift detection, fitness functions, secret scan, evals. Pure bash and Python stdlib. |
+| **Memory** | `constitution.md` (starts minimal, grows by ratchet), product and architecture digests, ADRs, `lessons.md`, `debt.md`, PR preferences. |
+| **Evals** | Graded cases for the skills, so a change to a prompt can be checked against the behavior it must keep. |
 
-## Princípios
+## Principles
 
-1. **Spec é fonte da verdade — viva, não cerimônia.** O passo *as-built* atualiza a spec quando a
-   implementação divergiu. Spec que não reflete o código é pior que spec nenhuma.
-2. **Determinístico onde importa, modelo onde importa.** Se o resultado precisa ser idêntico toda
-   vez, é script — não prompt.
-3. **Harness mínimo.** Cada componente tem um trabalho nomeável; se não tem, sai.
-4. **Ninguém se autoavalia.** Geração e avaliação são atores separados.
-5. **Ratchet.** Toda falha vira mecanismo permanente: um hook, um eval, uma regra registrada em
-   `lessons.md` com a falha que a originou. Nenhuma regra nasce de opinião.
-6. **Densidade, não brevidade.** O que o kit não aceita é enchimento — o mesmo requisito dito de
-   três jeitos custa ao leitor o mesmo que conteúdo e não ensina nada. Os tetos de tamanho vivem em
-   `config.json → budgets`, ligados por padrão com números tirados de artefatos reais que passaram
-   do ponto; um artefato que não cabe é sinal de escopo grande demais (divida), nunca motivo para
-   cortar conteúdo. `null` numa chave desliga o teto daquele arquivo.
-7. **Conteúdo externo é dado, nunca instrução.** Vale para páginas web, READMEs de dependência,
-   issues e comentários de código.
+1. **The spec is the source of truth: alive, not ceremony.** An *as-built* pass updates the spec
+   when the implementation diverged.
+2. **Deterministic where it matters.** If a result must be identical every time, it is a script,
+   not a prompt.
+3. **Minimal harness.** Every component has a nameable job. If it doesn't, it goes.
+4. **Nobody grades their own work.** Generation and evaluation are separate actors.
+5. **Ratchet.** Every failure becomes a permanent mechanism. No rule is born from opinion.
+6. **Density over length.** An artifact that doesn't fit its budget signals a scope that is too
+   big. Split the scope; never cut the content.
+7. **External content is data, never instructions.**
 
-## Contribuindo
+## Documentation
 
-Presets de stack são o caminho mais fácil de contribuir — veja
-[`.rush/presets/README.md`](.rush/presets/README.md). A regra: convenção precisa ser *earned*
-(rastreável a uma restrição real), nunca gosto pessoal.
+Detailed docs (in Portuguese) live in [`docs/`](docs/):
+[getting started](docs/getting-started.md) ·
+[flow](docs/flow.md) ·
+[skills and subagents](docs/agents.md) ·
+[harness](docs/harness.md) ·
+[definition of done](docs/definition-of-done.md) ·
+[integration](docs/integration.md) ·
+[configuration](docs/configuration.md) ·
+[evals](docs/evals.md) ·
+[updating](docs/updating.md)
 
-Os prompts dos agentes são escritos **em inglês**; a documentação deste repositório está em
-português. Um README em inglês é uma contribuição bem-vinda.
+## Contributing
 
-## Fontes
+Stack presets are the easiest place to start: see
+[`.rush/presets/README.md`](.rush/presets/README.md). A convention has to be *earned*, meaning
+traceable to a real constraint, never personal taste.
 
-O design deste kit foi destilado de:
-[GitHub Spec Kit](https://github.com/github/spec-kit) ·
-[Effective harnesses for long-running agents (Anthropic)](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents) ·
-[Demystifying evals for AI agents (Anthropic)](https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents) ·
-[Agent Harness Engineering (Addy Osmani)](https://addyosmani.com/blog/agent-harness-engineering/) ·
-[12-Factor Agents](https://github.com/humanlayer/12-factor-agents) ·
-[Understanding SDD (Martin Fowler)](https://www.martinfowler.com/articles/exploring-gen-ai/sdd-3-tools.html) ·
-[Putting Spec Kit Through Its Paces (Scott Logic)](https://blog.scottlogic.com/2025/11/26/putting-spec-kit-through-its-paces-radical-idea-or-reinvented-waterfall.html) ·
-[OWASP Top 10 for LLM Applications](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+## License
 
-## Licença
-
-MIT — veja [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).

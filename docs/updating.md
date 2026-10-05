@@ -77,7 +77,7 @@ herdou o default de uma versão anterior?"**. Um valor igual ao default antigo n
 acompanha o kit. Um valor diferente foi escolha: fica, e é reportado.
 
 Elas vivem em `.rush/migrations/<versão>.py` **do kit novo**, e o runner aplica em ordem toda
-migração cujo `VERSION` está em `(instalada, nova]`. As que existem hoje são exemplos reais:
+migração cujo `VERSION` está em `(instalada, nova]`. As que existem hoje vêm das versões 0.x, anteriores à 1.0.0, e continuam no kit para que projetos instalados nessas versões atualizem sem perder nada:
 
 - **0.5.0** — `git.branch_pattern` deixou de ser decorativo e passou a ser aplicado pelo
   `guard-bash.sh`. Um projeto carregando a string default `"feat/NNN-slug"` começaria a ter todo

@@ -61,7 +61,9 @@ Open in full only what the pack named and you are about to act against — not
    because the architecture decided the payment provider is unreliable and the ADR chose
    idempotency keys over locking — that is why the request id is generated here" is a review.
 9. Say plainly when something is wrong, risky, or lower quality than it should be. A review that
-   only praises is worthless. Equally: do not manufacture findings to look thorough.
+   only praises is worthless. Equally: do not manufacture findings to look thorough. Once you
+   have spotted a problem, record it at the severity it deserves — never talk yourself out of it
+   ("probably fine in practice"). Downgrading a finding is the human's call, made in front of them.
 
 ## Process
 

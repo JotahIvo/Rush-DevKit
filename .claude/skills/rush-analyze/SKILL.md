@@ -125,6 +125,11 @@ reports `headings_only` for the constitution, that one does need opening.)
      cites the original request, which is valid.)
    - **Uncovered acceptance criteria**: any acceptance criterion not traceable to a check or a
      human gate in `done-contract.md`'s JSON block and Coverage table.
+   - **Mock-only verification**: the feature provides or consumes a cross-feature interface, or
+     sits on a journey, yet no check runs the real boundary (integration, end-to-end or smoke) and
+     no named human gate accepts that gap. CRITICAL, resolved as a Decide: propose the check, or
+     the user accepts the gap. When the commands don't tell you whether a check reaches the real
+     boundary, ask — don't assume either way.
    - **Architecture not reflected**: any decision in `architecture.md`/ADRs relevant to this
      feature that `plan.md` silently ignores or contradicts.
    - **Constitution conflict**: any MUST this spec/plan/tasks set violates (Guardrail 8).

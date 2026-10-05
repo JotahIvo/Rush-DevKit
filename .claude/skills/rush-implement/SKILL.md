@@ -93,7 +93,9 @@ Set status: `.rush/scripts/task-status.sh <feature-id> --set <task-id> in_progre
 **2. Act.** Implement the smallest change that satisfies the task. Honour the contracts in
 `specs/shared-contracts/` exactly — a field name is a promise to another feature. Follow the
 conventions in `CLAUDE.md` and the architecture decisions; where the code has an established
-pattern, match it rather than introducing a second way of doing the same thing.
+pattern, match it rather than introducing a second way of doing the same thing. No opportunistic
+refactoring of code the task does not require: refactoring before the task is verified moves the
+line between verified and unverified code. Note it in `.rush/memory/debt.md` instead.
 
 **3. Observe.** Dispatch `rush-verifier` for this task. It runs the task's `verify:` command plus
 lint/typecheck/build as configured, and it — not you — decides pass or fail. Read only the
@@ -150,4 +152,5 @@ the chat — the human reads code in the review, with `/rush-review`.
 - [ ] `check-as-built.sh` reports no unreconciled drift
 - [ ] `done-check.sh` passes all automated checks (human gates may remain pending)
 - [ ] `tasks.md`'s Session Log updated; debt and questions recorded
+- [ ] No debug output, scratch files or commented-out experiments left behind
 - [ ] Working tree is clean or its state is explicitly reported

@@ -82,7 +82,11 @@ Read before acting, in this order:
 2. **Classify each failure** you find: caught early by an existing check (no action needed), caught
    late by an existing check (the check works but ran too late — consider moving it earlier, not a
    new rule), or not caught at all until a human found it (this is the category that needs a new
-   mechanism).
+   mechanism). Also name the layer that let it through: **spec** (requirement missing or
+   ambiguous), **context** (a fact existed but the agent never got it), **environment** (setup or
+   tooling), **verification** (no check, or one too shallow — e.g. mocked across a boundary) or
+   **state** (lost between sessions). Record it in the `lessons.md` entry. Across retros, the layer
+   that keeps recurring is where the harness is weakest.
 
 3. **For each "not caught at all" failure**, decide the cheapest sufficient fix, in this order of
    preference:

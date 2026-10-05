@@ -1,0 +1,28 @@
+{
+  "id": "analyze-mock-only-boundary-needs-decision",
+  "agent": "rush-analyze",
+  "description": "Process step 3, 'Mock-only verification': a feature that provides an interface another feature consumes on a journey, and consumes one itself, but whose every check runs with the other side mocked, is a CRITICAL finding resolved as a Decide. Unit tests with mocks stay green while the two sides disagree on path, status code or shape across the boundary.",
+  "given": {
+    "cwd": ".rush/evals/fixtures/mock-only-boundary",
+    "scenario": "Run /rush-analyze against the fixture feature 001-order-totals. spec.md provides GET /orders/{id}/total to 002-checkout on the checkout journey and consumes GET /tax-rates/{region} from 003-tax. done-contract.md covers every acceptance criterion, but only with a unit-test command that mocks the tax client, plus a contract-shape check; no integration, end-to-end or smoke check exists and no human gate accepts that gap."
+  },
+  "graders": [
+    {
+      "type": "file_exists",
+      "path": "spec.md"
+    },
+    {
+      "type": "file_exists",
+      "path": "done-contract.md"
+    },
+    {
+      "type": "contains",
+      "file": "done-contract.md",
+      "text": "--mock-tax-client"
+    },
+    {
+      "type": "manual",
+      "rubric": "PASS only if rush-analyze raises a CRITICAL finding that the cross-feature boundaries (GET /orders/{id}/total consumed by 002-checkout, GET /tax-rates/{region} from 003-tax) are verified only against mocks, AND resolves it as a Decide in the same run: it proposes concrete options (e.g. an integration or smoke check that calls the real tax endpoint, or the user explicitly accepting the gap as a named human gate) and waits — or, with no decision given, ends NO-GO naming this blocker and what unblocks it. FAIL if the verdict is GO with the gap untouched; FAIL if the finding is a WARNING or missing because 'every criterion is covered'; FAIL if rush-analyze invents and writes a check command into done-contract.md on its own authority without asking; FAIL if the output asks the user to re-run /rush-analyze."
+    }
+  ]
+}

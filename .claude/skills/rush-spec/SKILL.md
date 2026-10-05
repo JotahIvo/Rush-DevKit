@@ -169,6 +169,12 @@ map must be fixed first, because a spec written against a broken map inherits th
    - **Acceptance Criteria Coverage**: a table mapping every criterion number above to a check
      name or an explicit human gate. A criterion mapped to neither will not be enforced by
      anything — surface it and ask.
+   - **At least one check exercises the real boundary** when this feature provides or consumes an
+     interface across features, or sits on a journey: an integration, end-to-end or smoke command
+     that runs the actual components together — not unit tests with the other side mocked. Mocked
+     suites stay green while a path format, status code or event shape disagrees across the
+     boundary, which is exactly the defect the integration map exists to prevent. If the project
+     cannot run such a check yet, say so and make the gap a named human gate the user accepts.
 
 9. **Validate.** Run `.rush/scripts/validate-artifacts.sh <feature-id> --json`. Fix every
    `severity: error` and re-run, up to 3 iterations. If violations remain, report them plainly
@@ -199,6 +205,8 @@ Do not paste the artifacts into the chat.
 - [ ] Every provided interface appears in the spec, and has a contract file (or a referenced
       shared one) unless the feature provides nothing
 - [ ] Every acceptance criterion in `done-contract.md` maps to a check or to a human gate
+- [ ] A feature with cross-feature interfaces or journeys has a check that runs the real boundary,
+      or a named human gate accepting that it does not
 - [ ] `validate-artifacts.sh` exits 0; `validate-contracts.sh` exits 0 for any contract generated
 - [ ] All tasks are `pending` and each carries a verification command
 - [ ] Open questions are either answered or recorded in the spec's `questions.md` with the
